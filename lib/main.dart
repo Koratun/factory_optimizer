@@ -1,4 +1,8 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:flutter/services.dart';
 
 void main() {
   runApp(const MyApp());
@@ -11,57 +15,52 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Demo',
+      title: 'Factory Optimizer',
       theme: ThemeData(
+        canvasColor: Colors.black,
+        textTheme: Typography.whiteRedmond,
         primarySwatch: Colors.blue,
       ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
-    );
-  }
-}
-
-class MyHomePage extends StatefulWidget {
-  const MyHomePage({Key? key, required this.title}) : super(key: key);
-
-  final String title;
-
-  @override
-  State<MyHomePage> createState() => _MyHomePageState();
-}
-
-class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
-
-  void _incrementCounter() {
-    setState(() {
-      _counter++;
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.title),
-      ),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            const Text(
-              'You have pushed the button this many times:',
+      home: Center(
+        child: ListView(
+          children: [
+            Text(
+              "Factory Optimizer",
+              style: Theme.of(context).textTheme.displayLarge,
             ),
             Text(
-              '$_counter',
-              style: Theme.of(context).textTheme.headline4,
+              "Select Game Profile:",
+              style: Theme.of(context).textTheme.displaySmall,
+            ),
+            SizedBox(
+              width: 400,
+              height: 100,
+              child: ListTile(
+                leading: const Icon(
+                  Icons.add,
+                  color: Colors.white,
+                ),
+                title: Text(
+                  "Add New Profile",
+                  style: Theme.of(context).textTheme.displaySmall,
+                ),
+                onTap: () async {
+                  showDialog(context: context, builder: (context){
+                    Dialog(alignment: Alignment.center, child: TextField(autofocus: true, ),)
+                  });
+
+
+                  FilePickerResult? result =
+                      await FilePicker.platform.pickFiles(type: FileType.image);
+                  if (result != null) {
+                    File file = File(result.files.first.path!);
+
+                  }
+                },
+              ),
             ),
           ],
         ),
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        child: const Icon(Icons.add),
       ),
     );
   }
