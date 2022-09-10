@@ -1,0 +1,16 @@
+{
+    "input": [
+        {
+            "name": "Copper Ingot",
+            "amount": 1
+        }
+    ],
+    "output": [
+        {
+            "name": "Wire",
+            "amount": 2
+        }
+    ],
+    "rate": 15,
+    "building": "Constructor"
+}
