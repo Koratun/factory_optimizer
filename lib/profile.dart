@@ -139,29 +139,18 @@ class _GameProfileState extends State<GameProfile> {
                           style: Theme.of(context).textTheme.headlineMedium,
                         ),
                         if (isItem == null)
-                          for (var e in itemAssets.entries)
-                            Center(
-                              child: SizedBox(
-                                width: 400,
-                                child: ListTile(
-                                  onTap: () => setState(() {
-                                    isItem = true;
-                                    name = e.key;
-                                  }),
-                                  hoverColor: Colors.grey.shade900,
-                                  leading: Image.file(e.value),
-                                  title: Text(
-                                    e.key,
-                                    textWidthBasis: TextWidthBasis.longestLine,
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .headlineSmall,
-                                  ),
-                                ),
-                              ),
-                            ),
+                          for (var item in itemList()) item,
+                        if (isItem != null &&
+                            (isItem! ||
+                                // Buildings can only have one recipe
+                                (!isItem! && !recipes.containsKey(name))))
+                          newRecipeWidget(context),
                         if (isItem != null && recipes.containsKey(name))
-                          for (var r in recipes[name]!) recipe(r),
+                          for (var r in recipes[name]!)
+                            Padding(
+                              padding: const EdgeInsets.all(4),
+                              child: recipe(r),
+                            ),
                         if (isItem == null)
                           Center(child: newItemWidget(context)),
                       ],
@@ -178,29 +167,13 @@ class _GameProfileState extends State<GameProfile> {
                           style: Theme.of(context).textTheme.headlineMedium,
                         ),
                         if (isItem == null)
-                          for (_BuildingData b in buildingAssets.values)
-                            Center(
-                              child: SizedBox(
-                                width: 400,
-                                child: ListTile(
-                                  onTap: () => setState(() {
-                                    isItem = false;
-                                    name = b.name;
-                                  }),
-                                  hoverColor: Colors.grey.shade800,
-                                  leading: Image.file(b.file),
-                                  title: Text(
-                                    b.name,
-                                    textWidthBasis: TextWidthBasis.longestLine,
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .headlineSmall,
-                                  ),
-                                ),
-                              ),
-                            ),
+                          for (var b in buildingList()) b,
                         if (isItem != null && uses.containsKey(name))
-                          for (var r in uses[name]!) recipe(r),
+                          for (var r in uses[name]!)
+                            Padding(
+                              padding: const EdgeInsets.all(4),
+                              child: recipe(r),
+                            ),
                         if (isItem == null)
                           Center(child: newBuildingWidget(context)),
                       ],
@@ -240,6 +213,56 @@ class _GameProfileState extends State<GameProfile> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Iterable<Widget> itemList({bool returnSelection = false}) {
+    return itemAssets.entries.map(
+      (e) => Center(
+        child: SizedBox(
+          width: 400,
+          child: ListTile(
+            onTap: () => returnSelection
+                ? Navigator.pop(context, e.key)
+                : setState(() {
+                    isItem = true;
+                    name = e.key;
+                  }),
+            hoverColor: Colors.grey.shade900,
+            leading: Image.file(e.value),
+            title: Text(
+              e.key,
+              textWidthBasis: TextWidthBasis.longestLine,
+              style: Theme.of(context).textTheme.headlineSmall,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Iterable<Widget> buildingList({bool returnSelection = false}) {
+    return buildingAssets.values.map(
+      (b) => Center(
+        child: SizedBox(
+          width: 400,
+          child: ListTile(
+            onTap: () => returnSelection
+                ? Navigator.pop(context, b.name)
+                : setState(() {
+                    isItem = false;
+                    name = b.name;
+                  }),
+            hoverColor: Colors.grey.shade800,
+            leading: Image.file(b.file),
+            title: Text(
+              b.name,
+              textWidthBasis: TextWidthBasis.longestLine,
+              style: Theme.of(context).textTheme.headlineSmall,
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -299,8 +322,9 @@ class _GameProfileState extends State<GameProfile> {
                           height: 64,
                           child: Image.file(buildingAssets[r.building]!.file),
                         ),
-                        Text(
-                            "${r.rate != r.rate.toInt() ? r.rate : r.rate.toInt()}/min"),
+                        Text(r.rate != r.rate.toInt()
+                            ? "${r.rate}/min"
+                            : "${r.rate.toInt()}/min"),
                       ],
                     ),
                   const Icon(
@@ -351,6 +375,367 @@ class _GameProfileState extends State<GameProfile> {
 
   final _formKey = GlobalKey<FormState>();
   File? tempFile;
+
+  ItemRecipe? newRecipe;
+
+  Widget _reagentSelectDialog(BuildContext context, bool item) {
+    return Dialog(
+      alignment: Alignment.center,
+      child: Container(
+        color: Colors.grey.shade800,
+        child: SizedBox(
+          width: 800,
+          height: 1000,
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: ListView(children: [
+              Text(
+                item ? "Select an Item" : "Select a Building",
+                textAlign: TextAlign.center,
+                textWidthBasis: TextWidthBasis.longestLine,
+                style: Theme.of(context).textTheme.headlineMedium,
+              ),
+              for (var a in item
+                  ? itemList(returnSelection: true)
+                  : buildingList(returnSelection: true))
+                a,
+              Center(
+                  child: item
+                      ? newItemWidget(context, returnSelection: true)
+                      : newBuildingWidget(context, returnSelection: true)),
+            ]),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _addRecipeReagent(bool item, bool required, bool input) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 4),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Card(
+              color: Colors.grey.shade700,
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                side: BorderSide(color: required ? Colors.white : Colors.grey),
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: GestureDetector(
+                onTap: () async {
+                  String? reagent = await showDialog<String>(
+                    context: context,
+                    builder: (context) => _reagentSelectDialog(context, item),
+                  );
+                  if (reagent != null) {
+                    setState(() {
+                      if (item) {
+                        if (input) {
+                          newRecipe!.input.add(ItemAmount(reagent, 0));
+                        } else {
+                          newRecipe!.output.add(ItemAmount(reagent, 0));
+                        }
+                      } else {
+                        newRecipe!.building = reagent;
+                      }
+                    });
+                  }
+                },
+                child: const Center(
+                  child: Icon(
+                    Icons.add,
+                    size: 16,
+                    color: Colors.white,
+                  ),
+                ),
+              )),
+          Padding(
+            padding: const EdgeInsets.only(top: 4),
+            child: Text(
+              item ? "Item" : "Building",
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.labelSmall,
+            ),
+          )
+        ],
+      ),
+    );
+  }
+
+  final Map<String, TextEditingController> recipeFields = {};
+
+  Widget _cancelable(Widget child, String assetName, bool item) {
+    return Stack(
+      children: [
+        child,
+        TextButton(
+          onPressed: () {
+            recipeFields.remove(assetName);
+            if (item) {
+              newRecipe!.input.removeWhere((e) => e.name == assetName);
+              newRecipe!.output.removeWhere((e) => e.name == assetName);
+            } else {
+              newRecipe!.building = null;
+              newRecipe!.rate = 0;
+            }
+          },
+          child: Positioned.directional(
+            end: 0,
+            top: 0,
+            textDirection: TextDirection.ltr,
+            child: const Icon(
+              Icons.cancel,
+              size: 8,
+              color: Colors.red,
+            ),
+          ),
+        )
+      ],
+    );
+  }
+
+  Widget _reagent(
+    BuildContext context,
+    String assetName, {
+    required bool item,
+  }) {
+    if (!recipeFields.containsKey(assetName)) {
+      recipeFields[assetName] = TextEditingController(text: "0");
+    }
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 4),
+      child: item
+          ? Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                SizedBox(
+                  width: 48,
+                  height: 48,
+                  child: _cancelable(
+                    Image.file(itemAssets[assetName]!),
+                    assetName,
+                    item,
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.only(top: 4),
+                  child: TextField(
+                    controller: recipeFields[assetName],
+                    textAlign: TextAlign.center,
+                    inputFormatters: [
+                      FilteringTextInputFormatter.allow(RegExp(r"\d+\.?\d*"))
+                    ],
+                    decoration: InputDecoration(
+                      filled: true,
+                      fillColor: Colors.grey.shade800,
+                      border: InputBorder.none,
+                      isDense: true,
+                    ),
+                  ),
+                )
+              ],
+            )
+          : Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  buildingAssets[assetName]!.cost ==
+                          buildingAssets[assetName]!.cost.toInt()
+                      ? "${buildingAssets[assetName]!.cost.toInt()} MW"
+                      : "${buildingAssets[assetName]!.cost} MW",
+                  style: Theme.of(context).textTheme.labelSmall,
+                  textAlign: TextAlign.center,
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 4),
+                  child: SizedBox(
+                    width: 48,
+                    height: 48,
+                    child: _cancelable(
+                      Image.file(buildingAssets[assetName]!.file),
+                      assetName,
+                      item,
+                    ),
+                  ),
+                ),
+                TextField(
+                  controller: recipeFields[assetName],
+                  textAlign: TextAlign.center,
+                  inputFormatters: [
+                    FilteringTextInputFormatter.allow(RegExp(r"\d+\.?\d*"))
+                  ],
+                  decoration: InputDecoration(
+                    filled: true,
+                    fillColor: Colors.grey.shade800,
+                    border: InputBorder.none,
+                    isDense: true,
+                    suffixText: "/min",
+                  ),
+                ),
+              ],
+            ),
+    );
+  }
+
+  Widget _newRecipeDialog(BuildContext context) {
+    return Dialog(
+      alignment: Alignment.center,
+      child: Container(
+        color: Colors.grey.shade900,
+        child: SizedBox(
+          width: 400,
+          height: 150,
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            color: Colors.grey.shade800,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      for (var inp in newRecipe!.input)
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 4),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              SizedBox(
+                                width: 48,
+                                height: 48,
+                                child: Image.file(itemAssets[inp.name]!),
+                              ),
+                              Text(
+                                inp.amount.toString(),
+                                textAlign: TextAlign.center,
+                              ),
+                            ],
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+                Expanded(
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      const Icon(
+                        Icons.arrow_forward,
+                        color: Colors.white,
+                        size: 32,
+                      ),
+                      if (newRecipe!.building == null)
+                        _addRecipeReagent(false, false, false),
+                      if (newRecipe!.building != null)
+                        Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                                "${buildingAssets[newRecipe!.building]!.cost} MW"),
+                            SizedBox(
+                              width: 64,
+                              height: 64,
+                              child: Image.file(
+                                  buildingAssets[newRecipe!.building]!.file),
+                            ),
+                            Text(
+                                "${newRecipe!.rate != newRecipe!.rate.toInt() ? newRecipe!.rate : newRecipe!.rate.toInt()}/min"),
+                          ],
+                        ),
+                      const Icon(
+                        Icons.arrow_forward,
+                        color: Colors.white,
+                        size: 32,
+                      ),
+                    ],
+                  ),
+                ),
+                Expanded(
+                  child: Row(
+                    children: [
+                      for (var o in newRecipe!.output)
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 4),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              if (buildingAssets.containsKey(o.name))
+                                SizedBox(
+                                  width: 48,
+                                  height: 48,
+                                  child:
+                                      Image.file(buildingAssets[o.name]!.file),
+                                ),
+                              if (itemAssets.containsKey(o.name))
+                                SizedBox(
+                                  width: 48,
+                                  height: 48,
+                                  child: Image.file(itemAssets[o.name]!),
+                                ),
+                              if (!buildingAssets.containsKey(o.name))
+                                Text(
+                                  o.amount.toString(),
+                                  textAlign: TextAlign.center,
+                                ),
+                            ],
+                          ),
+                        ),
+                    ],
+                  ),
+                )
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget newRecipeWidget(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(4),
+      child: Container(
+        color: Colors.grey.shade800,
+        child: SizedBox(
+          height: 150,
+          width: 400,
+          child: InkWell(
+            onTap: () async {
+              newRecipe = ItemRecipe([], [], 0, null);
+              await showDialog(
+                context: context,
+                builder: _newRecipeDialog,
+              );
+              newRecipe = null;
+            },
+            hoverColor: Colors.grey.shade700,
+            child: Center(
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Padding(
+                    padding: EdgeInsets.only(right: 8),
+                    child: Icon(
+                      Icons.handyman,
+                      size: 64,
+                      color: Colors.white,
+                    ),
+                  ),
+                  Text(
+                    "Add recipe",
+                    style: Theme.of(context).textTheme.headlineSmall,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 
   Widget _newItemDialog(BuildContext context) {
     TextEditingController nameController = TextEditingController();
@@ -515,7 +900,8 @@ class _GameProfileState extends State<GameProfile> {
                             itemAssets[tempFile!.path.basename.trimExtension] =
                                 tempFile!);
                         tempFile = null;
-                        Navigator.pop(context);
+                        Navigator.pop(
+                            context, tempFile!.path.basename.trimExtension);
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(content: Text('Item added!')),
                         );
@@ -532,7 +918,7 @@ class _GameProfileState extends State<GameProfile> {
     );
   }
 
-  Widget newItemWidget(BuildContext context) {
+  Widget newItemWidget(BuildContext context, {bool returnSelection = false}) {
     return SizedBox(
       width: 400,
       child: ListTile(
@@ -547,11 +933,15 @@ class _GameProfileState extends State<GameProfile> {
           style: Theme.of(context).textTheme.headlineSmall,
         ),
         onTap: () async {
-          await showDialog<String>(
+          String? newItem = await showDialog<String>(
             context: context,
-            builder: (context) => _newItemDialog(context),
+            builder: _newItemDialog,
           );
           tempFile = null;
+          if (returnSelection && newItem != null) {
+            // ignore: use_build_context_synchronously
+            Navigator.pop(context, newItem);
+          }
         },
       ),
     );
@@ -741,7 +1131,7 @@ class _GameProfileState extends State<GameProfile> {
                       var b = _BuildingData(tempFile!);
                       setState(() => buildingAssets[b.name] = b);
                       tempFile = null;
-                      Navigator.pop(context);
+                      Navigator.pop(context, b.name);
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(content: Text('Building added!')),
                       );
@@ -757,7 +1147,8 @@ class _GameProfileState extends State<GameProfile> {
     );
   }
 
-  Widget newBuildingWidget(BuildContext context) {
+  Widget newBuildingWidget(BuildContext context,
+      {bool returnSelection = false}) {
     return SizedBox(
       width: 400,
       child: ListTile(
@@ -772,11 +1163,15 @@ class _GameProfileState extends State<GameProfile> {
           style: Theme.of(context).textTheme.headlineSmall,
         ),
         onTap: () async {
-          await showDialog<String>(
+          String? newBuilding = await showDialog<String>(
             context: context,
-            builder: (context) => _newBuildingDialog(context),
+            builder: _newBuildingDialog,
           );
           tempFile = null;
+          if (returnSelection && newBuilding != null) {
+            // ignore: use_build_context_synchronously
+            Navigator.pop(context, newBuilding);
+          }
         },
       ),
     );
