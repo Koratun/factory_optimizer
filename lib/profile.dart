@@ -75,34 +75,36 @@ class _GameProfileState extends State<GameProfile> {
           .list()
           .map((f) =>
               ItemRecipe.fromJson(json.decode((f as File).readAsStringSync())))
-          .forEach(
-            (r) => setState(() {
-              for (var o in r.output) {
-                if (recipes.containsKey(o.name)) {
-                  recipes[o.name]!.add(r);
-                } else {
-                  recipes[o.name] = [r];
-                }
-              }
-              for (var inp in r.input) {
-                if (uses.containsKey(inp.name)) {
-                  uses[inp.name]!.add(r);
-                } else {
-                  uses[inp.name] = [r];
-                }
-              }
-              if (r.building != null) {
-                if (uses.containsKey(r.building)) {
-                  uses[r.building]!.add(r);
-                } else {
-                  uses[r.building!] = [r];
-                }
-              }
-            }),
-          );
+          .forEach((r) => _registerRecipe(r));
     } else {
       Directory("recipes").createSync();
     }
+  }
+
+  void _registerRecipe(ItemRecipe r) {
+    setState(() {
+      for (var o in r.output) {
+        if (recipes.containsKey(o.name)) {
+          recipes[o.name]!.add(r);
+        } else {
+          recipes[o.name] = [r];
+        }
+      }
+      for (var inp in r.input) {
+        if (uses.containsKey(inp.name)) {
+          uses[inp.name]!.add(r);
+        } else {
+          uses[inp.name] = [r];
+        }
+      }
+      if (r.building != null) {
+        if (uses.containsKey(r.building)) {
+          uses[r.building]!.add(r);
+        } else {
+          uses[r.building!] = [r];
+        }
+      }
+    });
   }
 
   @override
@@ -140,17 +142,17 @@ class _GameProfileState extends State<GameProfile> {
                         ),
                         if (isItem == null)
                           for (var item in itemList()) item,
-                        if (isItem != null &&
-                            (isItem! ||
-                                // Buildings can only have one recipe
-                                (!isItem! && !recipes.containsKey(name))))
-                          newRecipeWidget(context),
                         if (isItem != null && recipes.containsKey(name))
                           for (var r in recipes[name]!)
                             Padding(
                               padding: const EdgeInsets.all(4),
                               child: recipe(r),
                             ),
+                        if (isItem != null &&
+                            (isItem! ||
+                                // Buildings can only have one recipe
+                                (!isItem! && !recipes.containsKey(name))))
+                          newRecipeWidget(context),
                         if (isItem == null)
                           Center(child: newItemWidget(context)),
                       ],
@@ -229,7 +231,7 @@ class _GameProfileState extends State<GameProfile> {
                     isItem = true;
                     name = e.key;
                   }),
-            hoverColor: Colors.grey.shade900,
+            hoverColor: Colors.grey.shade700,
             leading: Image.file(e.value),
             title: Text(
               e.key,
@@ -254,7 +256,7 @@ class _GameProfileState extends State<GameProfile> {
                     isItem = false;
                     name = b.name;
                   }),
-            hoverColor: Colors.grey.shade800,
+            hoverColor: Colors.grey.shade700,
             leading: Image.file(b.file),
             title: Text(
               b.name,
@@ -410,18 +412,26 @@ class _GameProfileState extends State<GameProfile> {
     );
   }
 
-  Widget _addRecipeReagent(bool item, bool required, bool input) {
+  Widget _addRecipeReagent(
+    void Function(void Function()) setState,
+    bool item,
+    bool required,
+    bool input,
+  ) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 4),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Card(
+          SizedBox(
+            width: 48,
+            height: 48,
+            child: Card(
               color: Colors.grey.shade700,
               elevation: 0,
               shape: RoundedRectangleBorder(
                 side: BorderSide(color: required ? Colors.white : Colors.grey),
-                borderRadius: BorderRadius.circular(4),
+                borderRadius: BorderRadius.circular(8),
               ),
               child: GestureDetector(
                 onTap: () async {
@@ -450,7 +460,9 @@ class _GameProfileState extends State<GameProfile> {
                     color: Colors.white,
                   ),
                 ),
-              )),
+              ),
+            ),
+          ),
           Padding(
             padding: const EdgeInsets.only(top: 4),
             child: Text(
@@ -466,28 +478,44 @@ class _GameProfileState extends State<GameProfile> {
 
   final Map<String, TextEditingController> recipeFields = {};
 
-  Widget _cancelable(Widget child, String assetName, bool item) {
+  Widget _cancelable(
+    void Function(void Function()) setState,
+    Widget child,
+    String assetName,
+    bool item,
+    bool input,
+  ) {
+    if (assetName == name && !input) {
+      return child;
+    }
     return Stack(
       children: [
         child,
-        TextButton(
-          onPressed: () {
-            recipeFields.remove(assetName);
-            if (item) {
-              newRecipe!.input.removeWhere((e) => e.name == assetName);
-              newRecipe!.output.removeWhere((e) => e.name == assetName);
-            } else {
-              newRecipe!.building = null;
-              newRecipe!.rate = 0;
-            }
-          },
-          child: Positioned.directional(
-            end: 0,
-            top: 0,
-            textDirection: TextDirection.ltr,
+        Positioned.directional(
+          end: 0,
+          width: 16,
+          top: 0,
+          height: 16,
+          textDirection: TextDirection.ltr,
+          child: GestureDetector(
+            onTap: () {
+              recipeFields.remove(assetName);
+              setState(() {
+                if (item) {
+                  if (input) {
+                    newRecipe!.input.removeWhere((e) => e.name == assetName);
+                  } else {
+                    newRecipe!.output.removeWhere((e) => e.name == assetName);
+                  }
+                } else {
+                  newRecipe!.building = null;
+                  newRecipe!.rate = 0;
+                }
+              });
+            },
             child: const Icon(
               Icons.cancel,
-              size: 8,
+              size: 16,
               color: Colors.red,
             ),
           ),
@@ -498,199 +526,283 @@ class _GameProfileState extends State<GameProfile> {
 
   Widget _reagent(
     BuildContext context,
+    void Function(void Function()) setState,
     String assetName, {
     required bool item,
+    required bool input,
   }) {
-    if (!recipeFields.containsKey(assetName)) {
+    if (isItem! && !recipeFields.containsKey(assetName)) {
       recipeFields[assetName] = TextEditingController(text: "0");
     }
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 4),
+      padding: const EdgeInsets.only(left: 4, right: 4, top: 8),
       child: item
           ? Column(
+              mainAxisSize: MainAxisSize.min,
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 SizedBox(
                   width: 48,
                   height: 48,
                   child: _cancelable(
+                    setState,
                     Image.file(itemAssets[assetName]!),
                     assetName,
                     item,
+                    input,
                   ),
                 ),
                 Padding(
-                  padding: const EdgeInsets.only(top: 4),
-                  child: TextField(
-                    controller: recipeFields[assetName],
-                    textAlign: TextAlign.center,
-                    inputFormatters: [
-                      FilteringTextInputFormatter.allow(RegExp(r"\d+\.?\d*"))
-                    ],
-                    decoration: InputDecoration(
-                      filled: true,
-                      fillColor: Colors.grey.shade800,
-                      border: InputBorder.none,
-                      isDense: true,
+                  padding: const EdgeInsets.only(top: 12),
+                  child: SizedBox(
+                    width: 40,
+                    height: 20,
+                    child: TextField(
+                      controller: recipeFields[assetName],
+                      textAlign: TextAlign.center,
+                      style: Theme.of(context).textTheme.labelSmall,
+                      inputFormatters: [
+                        FilteringTextInputFormatter.allow(RegExp(r"\d+\.?\d*"))
+                      ],
+                      decoration: InputDecoration(
+                        filled: true,
+                        fillColor: Colors.grey.shade800,
+                        border: InputBorder.none,
+                        isCollapsed: true,
+                      ),
                     ),
                   ),
-                )
+                ),
               ],
             )
           : Column(
+              mainAxisSize: MainAxisSize.min,
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Text(
-                  buildingAssets[assetName]!.cost ==
-                          buildingAssets[assetName]!.cost.toInt()
-                      ? "${buildingAssets[assetName]!.cost.toInt()} MW"
-                      : "${buildingAssets[assetName]!.cost} MW",
-                  style: Theme.of(context).textTheme.labelSmall,
-                  textAlign: TextAlign.center,
-                ),
+                if (isItem!)
+                  Text(
+                    buildingAssets[assetName]!.cost ==
+                            buildingAssets[assetName]!.cost.toInt()
+                        ? "${buildingAssets[assetName]!.cost.toInt()} MW"
+                        : "${buildingAssets[assetName]!.cost} MW",
+                    style: Theme.of(context).textTheme.labelSmall,
+                    textAlign: TextAlign.center,
+                  ),
                 Padding(
                   padding: const EdgeInsets.symmetric(vertical: 4),
                   child: SizedBox(
                     width: 48,
                     height: 48,
                     child: _cancelable(
+                      setState,
                       Image.file(buildingAssets[assetName]!.file),
                       assetName,
                       item,
+                      input,
                     ),
                   ),
                 ),
-                TextField(
-                  controller: recipeFields[assetName],
-                  textAlign: TextAlign.center,
-                  inputFormatters: [
-                    FilteringTextInputFormatter.allow(RegExp(r"\d+\.?\d*"))
-                  ],
-                  decoration: InputDecoration(
-                    filled: true,
-                    fillColor: Colors.grey.shade800,
-                    border: InputBorder.none,
-                    isDense: true,
-                    suffixText: "/min",
+                if (isItem!)
+                  SizedBox(
+                    width: 60,
+                    height: 20,
+                    child: TextField(
+                      controller: recipeFields[assetName],
+                      textAlign: TextAlign.center,
+                      style: Theme.of(context).textTheme.labelSmall,
+                      inputFormatters: [
+                        FilteringTextInputFormatter.allow(RegExp(r"\d+\.?\d*"))
+                      ],
+                      decoration: InputDecoration(
+                        filled: true,
+                        fillColor: Colors.grey.shade800,
+                        border: InputBorder.none,
+                        isCollapsed: true,
+                        suffixText: "/min",
+                        suffixStyle: Theme.of(context).textTheme.labelSmall,
+                      ),
+                    ),
                   ),
-                ),
               ],
             ),
     );
   }
 
   Widget _newRecipeDialog(BuildContext context) {
-    return Dialog(
-      alignment: Alignment.center,
-      child: Container(
-        color: Colors.grey.shade900,
-        child: SizedBox(
-          width: 400,
-          height: 150,
-          child: Container(
-            padding: const EdgeInsets.all(16),
-            color: Colors.grey.shade800,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Expanded(
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
+    var nameField = TextEditingController();
+    newRecipe = ItemRecipe(
+      [],
+      [ItemAmount(name!, isItem! ? 0 : 1)],
+      0,
+      null,
+    );
+
+    return StatefulBuilder(
+      builder: ((context, setState) => Dialog(
+            alignment: Alignment.center,
+            child: Container(
+              color: Colors.grey.shade900,
+              child: SizedBox(
+                width: 800,
+                height: 220,
+                child: Container(
+                  padding: const EdgeInsets.all(16),
+                  color: Colors.grey.shade800,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
-                      for (var inp in newRecipe!.input)
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 4),
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              SizedBox(
-                                width: 48,
-                                height: 48,
-                                child: Image.file(itemAssets[inp.name]!),
-                              ),
-                              Text(
-                                inp.amount.toString(),
-                                textAlign: TextAlign.center,
-                              ),
-                            ],
-                          ),
+                      TextField(
+                        controller: nameField,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.allow(RegExp(r"\w"))
+                        ],
+                        decoration: InputDecoration(
+                          filled: true,
+                          fillColor: Colors.grey.shade400,
+                          hintText: "Filename for recipe without the extension",
                         ),
-                    ],
-                  ),
-                ),
-                Expanded(
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: [
-                      const Icon(
-                        Icons.arrow_forward,
-                        color: Colors.white,
-                        size: 32,
                       ),
-                      if (newRecipe!.building == null)
-                        _addRecipeReagent(false, false, false),
-                      if (newRecipe!.building != null)
-                        Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(
-                                "${buildingAssets[newRecipe!.building]!.cost} MW"),
-                            SizedBox(
-                              width: 64,
-                              height: 64,
-                              child: Image.file(
-                                  buildingAssets[newRecipe!.building]!.file),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Expanded(
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.end,
+                              children: [
+                                if (newRecipe!.input.length <= 4)
+                                  _addRecipeReagent(setState, true,
+                                      newRecipe!.input.isEmpty, true),
+                                for (var inp in newRecipe!.input.reversed)
+                                  _reagent(context, setState, inp.name,
+                                      item: true, input: true),
+                              ],
                             ),
-                            Text(
-                                "${newRecipe!.rate != newRecipe!.rate.toInt() ? newRecipe!.rate : newRecipe!.rate.toInt()}/min"),
-                          ],
-                        ),
-                      const Icon(
-                        Icons.arrow_forward,
-                        color: Colors.white,
-                        size: 32,
+                          ),
+                          Expanded(
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                              children: [
+                                if (isItem!)
+                                  const Icon(
+                                    Icons.arrow_forward,
+                                    color: Colors.white,
+                                    size: 32,
+                                  ),
+                                if (isItem! && newRecipe!.building == null)
+                                  _addRecipeReagent(
+                                      setState, false, true, false),
+                                if (isItem! && newRecipe!.building != null)
+                                  _reagent(
+                                      context, setState, newRecipe!.building!,
+                                      item: false, input: true),
+                                const Icon(
+                                  Icons.arrow_forward,
+                                  color: Colors.white,
+                                  size: 32,
+                                ),
+                              ],
+                            ),
+                          ),
+                          Expanded(
+                            child: Row(
+                              children: [
+                                for (var o in newRecipe!.output)
+                                  _reagent(context, setState, o.name,
+                                      item: isItem!, input: false),
+                                if (isItem! && newRecipe!.output.length <= 4)
+                                  _addRecipeReagent(
+                                      setState, true, false, false),
+                              ],
+                            ),
+                          )
+                        ],
+                      ),
+                      TextButton(
+                        onPressed: () {
+                          var failed = false;
+                          if (nameField.text.isEmpty) {
+                            errorAlert("The filename can be anything A-z.");
+                            failed = true;
+                          }
+                          if (newRecipe!.input.isEmpty) {
+                            errorAlert("Recipe must have at least one input.");
+                            failed = true;
+                          }
+                          if (isItem! && newRecipe!.building == null) {
+                            errorAlert(
+                                "Must specify a building for the recipe.");
+                            failed = true;
+                          }
+                          if (newRecipe!.building != null &&
+                              (double.tryParse(
+                                          recipeFields[newRecipe!.building!]!
+                                              .text) ??
+                                      0) <=
+                                  0) {
+                            errorAlert("Recipe rate must be above 0.");
+                            failed = true;
+                          }
+                          for (var inp in newRecipe!.input) {
+                            if ((int.tryParse(recipeFields[inp.name]!.text) ??
+                                    0) <=
+                                0) {
+                              errorAlert(
+                                  "${inp.name}: rate must be a whole number above 0.");
+                              failed = true;
+                            }
+                          }
+                          for (var o in newRecipe!.output) {
+                            if ((int.tryParse(recipeFields[o.name]!.text) ??
+                                    0) <=
+                                0) {
+                              errorAlert(
+                                  "${o.name}: rate must be a whole number above 0.");
+                              failed = true;
+                            }
+                          }
+                          if (!failed) {
+                            for (var inp in newRecipe!.input) {
+                              inp.amount =
+                                  int.tryParse(recipeFields[inp.name]!.text)!;
+                            }
+                            for (var o in newRecipe!.output) {
+                              o.amount =
+                                  int.tryParse(recipeFields[o.name]!.text)!;
+                            }
+                            if (isItem!) {
+                              newRecipe!.rate = double.tryParse(
+                                  recipeFields[newRecipe!.building!]!.text)!;
+                            }
+                            File("recipes/${nameField.text}.json")
+                                .writeAsStringSync(
+                                    json.encode(newRecipe!.toJson()));
+                            _registerRecipe(newRecipe!);
+                            newRecipe = null;
+                            Navigator.pop(context);
+                          }
+                        },
+                        child: const Text("Add Recipe"),
                       ),
                     ],
                   ),
                 ),
-                Expanded(
-                  child: Row(
-                    children: [
-                      for (var o in newRecipe!.output)
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 4),
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              if (buildingAssets.containsKey(o.name))
-                                SizedBox(
-                                  width: 48,
-                                  height: 48,
-                                  child:
-                                      Image.file(buildingAssets[o.name]!.file),
-                                ),
-                              if (itemAssets.containsKey(o.name))
-                                SizedBox(
-                                  width: 48,
-                                  height: 48,
-                                  child: Image.file(itemAssets[o.name]!),
-                                ),
-                              if (!buildingAssets.containsKey(o.name))
-                                Text(
-                                  o.amount.toString(),
-                                  textAlign: TextAlign.center,
-                                ),
-                            ],
-                          ),
-                        ),
-                    ],
-                  ),
-                )
-              ],
+              ),
             ),
-          ),
-        ),
-      ),
+          )),
+    );
+  }
+
+  void errorAlert(String content) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          backgroundColor: Colors.grey.shade700,
+          title: const Text("Error"),
+          content: Text(content),
+        );
+      },
     );
   }
 
@@ -704,13 +816,16 @@ class _GameProfileState extends State<GameProfile> {
           width: 400,
           child: InkWell(
             onTap: () async {
-              newRecipe = ItemRecipe([], [], 0, null);
               await showDialog(
                 context: context,
                 builder: _newRecipeDialog,
               );
-              newRecipe = null;
+              for (var value in recipeFields.values) {
+                value.dispose();
+              }
+              recipeFields.clear();
             },
+            onHover: (value) {},
             hoverColor: Colors.grey.shade700,
             child: Center(
               child: Row(
