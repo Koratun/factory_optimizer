@@ -19,8 +19,8 @@ ItemRecipe _$ItemRecipeFromJson(Map<String, dynamic> json) => ItemRecipe(
 
 Map<String, dynamic> _$ItemRecipeToJson(ItemRecipe instance) =>
     <String, dynamic>{
-      'input': instance.input,
-      'output': instance.output,
+      'input': instance.input.map((e) => e.toJson()).toList(),
+      'output': instance.output.map((e) => e.toJson()).toList(),
       'rate': instance.rate,
       'building': instance.building,
     };
