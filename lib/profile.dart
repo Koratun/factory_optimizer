@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter/foundation.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:mime/mime.dart';
+import 'package:provider/provider.dart';
 
 import 'string_utils.dart';
 import 'item_recipe.dart';
@@ -13,8 +14,16 @@ import 'item_recipe.dart';
 class GameProfile extends StatefulWidget {
   final String name;
   final File gameIconFile;
+  final bool? isItem;
+  final String? assetName;
 
-  const GameProfile(this.name, this.gameIconFile, {super.key});
+  const GameProfile(
+    this.name,
+    this.gameIconFile, {
+    this.isItem,
+    this.assetName,
+    super.key,
+  });
 
   @override
   State<GameProfile> createState() => _GameProfileState();
@@ -22,12 +31,12 @@ class GameProfile extends StatefulWidget {
 
 // Building files must have following format:
 // Name-PowerConsumption.extension
-class _BuildingData {
+class BuildingData {
   final File file;
   late final String name;
   late final double cost;
 
-  _BuildingData(this.file) {
+  BuildingData(this.file) {
     name = file.path.basename.substring(0, file.path.basename.lastIndexOf('-'));
     cost = double.parse(file.path.basename
         .substring(file.path.basename.lastIndexOf('-') + 1)
@@ -35,73 +44,71 @@ class _BuildingData {
   }
 }
 
-class _GameProfileState extends State<GameProfile> {
+class GameModel extends ChangeNotifier {
   final Map<String, File> itemAssets = {};
-  final Map<String, _BuildingData> buildingAssets = {};
+  final Map<String, BuildingData> buildingAssets = {};
   final Map<String, List<ItemRecipe>> recipes = {};
   final Map<String, List<ItemRecipe>> uses = {};
-  late final String rootDir;
-  bool? isItem;
-  String? name;
 
-  T _tertiary<T>(bool? b, T trueResponse, T falseResponse, T nullResponse) {
-    if (b == null) {
-      return nullResponse;
-    } else if (b) {
-      return trueResponse;
-    } else {
-      return falseResponse;
-    }
-  }
+  bool get loaded => itemAssets.isNotEmpty;
+}
+
+class _GameProfileState extends State<GameProfile> {
+  late final String rootDir;
+  late final GameModel game;
 
   @override
   void initState() {
     super.initState();
     Directory.current = "data/${widget.name}";
     rootDir = Directory.current.path;
-    if (Directory("assets").existsSync()) {
-      Directory("assets\\items").list().forEach((f) => setState(
-          () => itemAssets[f.path.basename.trimExtension] = (f as File)));
-      Directory("assets\\buildings")
-          .list()
-          .map((f) => _BuildingData(f as File))
-          .forEach((b) => setState(() => buildingAssets[b.name] = b));
-    } else {
-      Directory("assets\\items").createSync(recursive: true);
-      Directory("assets\\buildings").createSync();
-    }
-    if (Directory("recipes").existsSync()) {
-      Directory("recipes")
-          .list()
-          .map((f) =>
-              ItemRecipe.fromJson(json.decode((f as File).readAsStringSync())))
-          .forEach((r) => _registerRecipe(r));
-    } else {
-      Directory("recipes").createSync();
+
+    game = Provider.of<GameModel>(context, listen: false);
+    if (!game.loaded) {
+      if (Directory("assets").existsSync()) {
+        Directory("assets\\items").list().forEach((f) => setState(() =>
+            game.itemAssets[f.path.basename.trimExtension] = (f as File)));
+        Directory("assets\\buildings")
+            .list()
+            .map((f) => BuildingData(f as File))
+            .forEach((b) => setState(() => game.buildingAssets[b.name] = b));
+      } else {
+        Directory("assets\\items").createSync(recursive: true);
+        Directory("assets\\buildings").createSync();
+      }
+      if (Directory("recipes").existsSync()) {
+        Directory("recipes")
+            .list()
+            .map((f) => ItemRecipe.fromJson(
+                json.decode((f as File).readAsStringSync())))
+            .forEach((r) => _registerRecipe(r));
+      } else {
+        Directory("recipes").createSync();
+      }
     }
   }
 
   void _registerRecipe(ItemRecipe r) {
     setState(() {
       for (var o in r.output) {
-        if (recipes.containsKey(o.name)) {
-          recipes[o.name]!.add(r);
+        if (game.recipes.containsKey(o.name)) {
+          game.recipes[o.name]!.add(r);
         } else {
-          recipes[o.name] = [r];
+          game.recipes[o.name] = [r];
         }
       }
       for (var inp in r.input) {
-        if (uses.containsKey(inp.name)) {
-          uses[inp.name]!.add(r);
+        if (game.uses.containsKey(inp.name)) {
+          game.uses[inp.name]!.add(r);
         } else {
-          uses[inp.name] = [r];
+          game.uses[inp.name] = [r];
         }
       }
       if (r.building != null) {
-        if (uses.containsKey(r.building)) {
-          uses[r.building]!.add(r);
+        if (game.uses.containsKey(r.building)) {
+          game.uses[r.building]!.add(r);
         } else {
-          uses[r.building!] = [r];
+          game.uses[r.building!] = [r];
         }
       }
     });
@@ -112,78 +119,87 @@ class _GameProfileState extends State<GameProfile> {
     return Scaffold(
       body: Stack(
         children: [
-          Column(
-            children: [
-              Text(
-                isItem == null ? widget.name : name!,
-                textAlign: TextAlign.center,
-                textWidthBasis: TextWidthBasis.longestLine,
-                style: Theme.of(context).textTheme.displaySmall,
-              ),
-              if (isItem != null)
-                SizedBox(
-                  width: 64,
-                  height: 64,
-                  child: Image.file(
-                      isItem! ? itemAssets[name]! : buildingAssets[name]!.file),
-                ),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: ListView(
-                      shrinkWrap: true,
+          Consumer<GameModel>(
+            builder: ((context, game, child) => Column(
+                  children: [
+                    Text(
+                      widget.isItem == null ? widget.name : widget.assetName!,
+                      textAlign: TextAlign.center,
+                      textWidthBasis: TextWidthBasis.longestLine,
+                      style: Theme.of(context).textTheme.displaySmall,
+                    ),
+                    if (widget.isItem != null)
+                      SizedBox(
+                        width: 64,
+                        height: 64,
+                        child: Image.file(widget.isItem!
+                            ? game.itemAssets[widget.assetName]!
+                            : game.buildingAssets[widget.assetName]!.file),
+                      ),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          isItem == null ? "Items" : "Recipes",
-                          textAlign: TextAlign.center,
-                          textWidthBasis: TextWidthBasis.longestLine,
-                          style: Theme.of(context).textTheme.headlineMedium,
+                        Expanded(
+                          child: ListView(
+                            shrinkWrap: true,
+                            children: [
+                              Text(
+                                widget.isItem == null ? "Items" : "Recipes",
+                                textAlign: TextAlign.center,
+                                textWidthBasis: TextWidthBasis.longestLine,
+                                style:
+                                    Theme.of(context).textTheme.headlineMedium,
+                              ),
+                              if (widget.isItem == null)
+                                for (var item in itemList()) item,
+                              if (widget.isItem != null &&
+                                  game.recipes.containsKey(widget.assetName))
+                                for (var r in game.recipes[widget.assetName]!)
+                                  Padding(
+                                    padding: const EdgeInsets.all(4),
+                                    child: recipe(r, game),
+                                  ),
+                              if (widget.isItem != null &&
+                                  (widget.isItem! ||
+                                      // Buildings can only have one recipe
+                                      (!widget.isItem! &&
+                                          !game.recipes
+                                              .containsKey(widget.assetName))))
+                                newRecipeWidget(context),
+                              if (widget.isItem == null)
+                                Center(child: newItemWidget(context)),
+                            ],
+                          ),
                         ),
-                        if (isItem == null)
-                          for (var item in itemList()) item,
-                        if (isItem != null && recipes.containsKey(name))
-                          for (var r in recipes[name]!)
-                            Padding(
-                              padding: const EdgeInsets.all(4),
-                              child: recipe(r),
-                            ),
-                        if (isItem != null &&
-                            (isItem! ||
-                                // Buildings can only have one recipe
-                                (!isItem! && !recipes.containsKey(name))))
-                          newRecipeWidget(context),
-                        if (isItem == null)
-                          Center(child: newItemWidget(context)),
+                        Expanded(
+                          child: ListView(
+                            shrinkWrap: true,
+                            children: [
+                              Text(
+                                widget.isItem == null ? "Buildings" : "Uses",
+                                textAlign: TextAlign.center,
+                                textWidthBasis: TextWidthBasis.longestLine,
+                                style:
+                                    Theme.of(context).textTheme.headlineMedium,
+                              ),
+                              if (widget.isItem == null)
+                                for (var b in buildingList()) b,
+                              if (widget.isItem != null &&
+                                  game.uses.containsKey(widget.assetName))
+                                for (var r in game.uses[widget.assetName]!)
+                                  Padding(
+                                    padding: const EdgeInsets.all(4),
+                                    child: recipe(r, game),
+                                  ),
+                              if (widget.isItem == null)
+                                Center(child: newBuildingWidget(context)),
+                            ],
+                          ),
+                        ),
                       ],
                     ),
-                  ),
-                  Expanded(
-                    child: ListView(
-                      shrinkWrap: true,
-                      children: [
-                        Text(
-                          isItem == null ? "Buildings" : "Uses",
-                          textAlign: TextAlign.center,
-                          textWidthBasis: TextWidthBasis.longestLine,
-                          style: Theme.of(context).textTheme.headlineMedium,
-                        ),
-                        if (isItem == null)
-                          for (var b in buildingList()) b,
-                        if (isItem != null && uses.containsKey(name))
-                          for (var r in uses[name]!)
-                            Padding(
-                              padding: const EdgeInsets.all(4),
-                              child: recipe(r),
-                            ),
-                        if (isItem == null)
-                          Center(child: newBuildingWidget(context)),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ],
+                  ],
+                )),
           ),
           Positioned.directional(
             textDirection: TextDirection.ltr,
@@ -201,15 +217,10 @@ class _GameProfileState extends State<GameProfile> {
             height: 64,
             child: TextButton(
               onPressed: () {
-                if (isItem == null) {
+                if (widget.isItem == null) {
                   Directory.current = "..\\..";
-                  Navigator.pop(context);
-                } else {
-                  setState(() {
-                    isItem = null;
-                    name = null;
-                  });
                 }
+                Navigator.pop(context);
               },
               child: const Icon(Icons.arrow_back),
             ),
@@ -220,17 +231,24 @@ class _GameProfileState extends State<GameProfile> {
   }
 
   Iterable<Widget> itemList({bool returnSelection = false}) {
-    return itemAssets.entries.map(
+    return game.itemAssets.entries.map(
       (e) => Center(
         child: SizedBox(
           width: 400,
           child: ListTile(
             onTap: () => returnSelection
                 ? Navigator.pop(context, e.key)
-                : setState(() {
-                    isItem = true;
-                    name = e.key;
-                  }),
+                : Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => GameProfile(
+                        widget.name,
+                        widget.gameIconFile,
+                        isItem: true,
+                        assetName: e.key,
+                      ),
+                    ),
+                  ),
             hoverColor: Colors.grey.shade700,
             leading: Image.file(e.value),
             title: Text(
@@ -245,17 +263,24 @@ class _GameProfileState extends State<GameProfile> {
   }
 
   Iterable<Widget> buildingList({bool returnSelection = false}) {
-    return buildingAssets.values.map(
+    return game.buildingAssets.values.map(
       (b) => Center(
         child: SizedBox(
           width: 400,
           child: ListTile(
             onTap: () => returnSelection
                 ? Navigator.pop(context, b.name)
-                : setState(() {
-                    isItem = false;
-                    name = b.name;
-                  }),
+                : Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => GameProfile(
+                        widget.name,
+                        widget.gameIconFile,
+                        isItem: false,
+                        assetName: b.name,
+                      ),
+                    ),
+                  ),
             hoverColor: Colors.grey.shade700,
             leading: Image.file(b.file),
             title: Text(
@@ -269,7 +294,13 @@ class _GameProfileState extends State<GameProfile> {
     );
   }
 
-  Widget recipe(ItemRecipe r) {
+  Widget routeableAsset(Widget child, String assetName) {
+    if (assetName == widget.assetName) {
+      return child;
+    }
+  }
+
+  Widget recipe(ItemRecipe r, GameModel game) {
     return SizedBox(
       width: 400,
       height: 150,
@@ -283,7 +314,7 @@ class _GameProfileState extends State<GameProfile> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  for (var inp in r.input)
+                  for (var inp in r.input.reversed)
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 4),
                       child: Column(
@@ -292,7 +323,7 @@ class _GameProfileState extends State<GameProfile> {
                           SizedBox(
                             width: 48,
                             height: 48,
-                            child: Image.file(itemAssets[inp.name]!),
+                            child: Image.file(game.itemAssets[inp.name]!),
                           ),
                           Text(
                             inp.amount.toString(),
@@ -318,11 +349,12 @@ class _GameProfileState extends State<GameProfile> {
                     Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Text("${buildingAssets[r.building]!.cost} MW"),
+                        Text("${game.buildingAssets[r.building]!.cost} MW"),
                         SizedBox(
                           width: 64,
                           height: 64,
-                          child: Image.file(buildingAssets[r.building]!.file),
+                          child:
+                              Image.file(game.buildingAssets[r.building]!.file),
                         ),
                         Text(r.rate != r.rate.toInt()
                             ? "${r.rate}/min"
@@ -346,19 +378,20 @@ class _GameProfileState extends State<GameProfile> {
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          if (buildingAssets.containsKey(o.name))
+                          if (game.buildingAssets.containsKey(o.name))
                             SizedBox(
                               width: 48,
                               height: 48,
-                              child: Image.file(buildingAssets[o.name]!.file),
+                              child:
+                                  Image.file(game.buildingAssets[o.name]!.file),
                             ),
-                          if (itemAssets.containsKey(o.name))
+                          if (game.itemAssets.containsKey(o.name))
                             SizedBox(
                               width: 48,
                               height: 48,
-                              child: Image.file(itemAssets[o.name]!),
+                              child: Image.file(game.itemAssets[o.name]!),
                             ),
-                          if (!buildingAssets.containsKey(o.name))
+                          if (!game.buildingAssets.containsKey(o.name))
                             Text(
                               o.amount.toString(),
                               textAlign: TextAlign.center,
@@ -485,7 +518,7 @@ class _GameProfileState extends State<GameProfile> {
     bool item,
     bool input,
   ) {
-    if (assetName == name && !input) {
+    if (assetName == widget.assetName && !input) {
       return child;
     }
     return Stack(
@@ -531,7 +564,7 @@ class _GameProfileState extends State<GameProfile> {
     required bool item,
     required bool input,
   }) {
-    if (isItem! && !recipeFields.containsKey(assetName)) {
+    if (widget.isItem! && !recipeFields.containsKey(assetName)) {
       recipeFields[assetName] = TextEditingController(text: "0");
     }
     return Padding(
@@ -546,7 +579,7 @@ class _GameProfileState extends State<GameProfile> {
                   height: 48,
                   child: _cancelable(
                     setState,
-                    Image.file(itemAssets[assetName]!),
+                    Image.file(game.itemAssets[assetName]!),
                     assetName,
                     item,
                     input,
@@ -579,12 +612,12 @@ class _GameProfileState extends State<GameProfile> {
               mainAxisSize: MainAxisSize.min,
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                if (isItem!)
+                if (widget.isItem!)
                   Text(
-                    buildingAssets[assetName]!.cost ==
-                            buildingAssets[assetName]!.cost.toInt()
-                        ? "${buildingAssets[assetName]!.cost.toInt()} MW"
-                        : "${buildingAssets[assetName]!.cost} MW",
+                    game.buildingAssets[assetName]!.cost ==
+                            game.buildingAssets[assetName]!.cost.toInt()
+                        ? "${game.buildingAssets[assetName]!.cost.toInt()} MW"
+                        : "${game.buildingAssets[assetName]!.cost} MW",
                     style: Theme.of(context).textTheme.labelSmall,
                     textAlign: TextAlign.center,
                   ),
@@ -595,14 +628,14 @@ class _GameProfileState extends State<GameProfile> {
                     height: 48,
                     child: _cancelable(
                       setState,
-                      Image.file(buildingAssets[assetName]!.file),
+                      Image.file(game.buildingAssets[assetName]!.file),
                       assetName,
                       item,
                       input,
                     ),
                   ),
                 ),
-                if (isItem!)
+                if (widget.isItem!)
                   SizedBox(
                     width: 60,
                     height: 20,
@@ -632,7 +665,7 @@ class _GameProfileState extends State<GameProfile> {
     var nameField = TextEditingController();
     newRecipe = ItemRecipe(
       [],
-      [ItemAmount(name!, isItem! ? 0 : 1)],
+      [ItemAmount(widget.assetName!, widget.isItem! ? 0 : 1)],
       0,
       null,
     );
@@ -683,16 +716,18 @@ class _GameProfileState extends State<GameProfile> {
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                               children: [
-                                if (isItem!)
+                                if (widget.isItem!)
                                   const Icon(
                                     Icons.arrow_forward,
                                     color: Colors.white,
                                     size: 32,
                                   ),
-                                if (isItem! && newRecipe!.building == null)
+                                if (widget.isItem! &&
+                                    newRecipe!.building == null)
                                   _addRecipeReagent(
                                       setState, false, true, false),
-                                if (isItem! && newRecipe!.building != null)
+                                if (widget.isItem! &&
+                                    newRecipe!.building != null)
                                   _reagent(
                                       context, setState, newRecipe!.building!,
                                       item: false, input: true),
@@ -709,8 +744,9 @@ class _GameProfileState extends State<GameProfile> {
                               children: [
                                 for (var o in newRecipe!.output)
                                   _reagent(context, setState, o.name,
-                                      item: isItem!, input: false),
-                                if (isItem! && newRecipe!.output.length <= 4)
+                                      item: widget.isItem!, input: false),
+                                if (widget.isItem! &&
+                                    newRecipe!.output.length <= 4)
                                   _addRecipeReagent(
                                       setState, true, false, false),
                               ],
@@ -729,7 +765,7 @@ class _GameProfileState extends State<GameProfile> {
                             errorAlert("Recipe must have at least one input.");
                             failed = true;
                           }
-                          if (isItem! && newRecipe!.building == null) {
+                          if (widget.isItem! && newRecipe!.building == null) {
                             errorAlert(
                                 "Must specify a building for the recipe.");
                             failed = true;
@@ -770,7 +806,7 @@ class _GameProfileState extends State<GameProfile> {
                               o.amount =
                                   int.tryParse(recipeFields[o.name]!.text)!;
                             }
-                            if (isItem!) {
+                            if (widget.isItem!) {
                               newRecipe!.rate = double.tryParse(
                                   recipeFields[newRecipe!.building!]!.text)!;
                             }
@@ -880,7 +916,7 @@ class _GameProfileState extends State<GameProfile> {
                     if (value == null || value.isEmpty) {
                       return "Value needed";
                     }
-                    if (itemAssets.containsKey(value)) {
+                    if (game.itemAssets.containsKey(value)) {
                       return "Name taken";
                     }
                     return null;
@@ -1011,9 +1047,8 @@ class _GameProfileState extends State<GameProfile> {
                   child: ElevatedButton(
                     onPressed: () {
                       if (_formKey.currentState!.validate()) {
-                        setState(() =>
-                            itemAssets[tempFile!.path.basename.trimExtension] =
-                                tempFile!);
+                        setState(() => game.itemAssets[
+                            tempFile!.path.basename.trimExtension] = tempFile!);
                         tempFile = null;
                         Navigator.pop(
                             context, tempFile!.path.basename.trimExtension);
@@ -1091,7 +1126,7 @@ class _GameProfileState extends State<GameProfile> {
                     if (value == null || value.isEmpty) {
                       return "Value needed";
                     }
-                    if (buildingAssets.containsKey(value)) {
+                    if (game.buildingAssets.containsKey(value)) {
                       return "Name taken";
                     }
                     return null;
@@ -1243,8 +1278,8 @@ class _GameProfileState extends State<GameProfile> {
                       tempFile = tempFile!.renameSync(
                           "${tempFile!.path.trimExtension}-"
                           "${powerController.text}${tempFile!.path.extension}");
-                      var b = _BuildingData(tempFile!);
-                      setState(() => buildingAssets[b.name] = b);
+                      var b = BuildingData(tempFile!);
+                      game.buildingAssets[b.name] = b;
                       tempFile = null;
                       Navigator.pop(context, b.name);
                       ScaffoldMessenger.of(context).showSnackBar(

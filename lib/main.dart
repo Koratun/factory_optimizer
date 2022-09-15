@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:mime/mime.dart';
+import 'package:provider/provider.dart';
 
 import 'string_utils.dart';
 import 'profile.dart';
@@ -97,8 +98,11 @@ class _MainAppState extends State<MainApp> {
                         onTap: () => Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) =>
-                                GameProfile(f.path.basename.trimExtension, f),
+                            builder: (context) => ChangeNotifierProvider(
+                              create: (context) => GameModel(),
+                              child:
+                                  GameProfile(f.path.basename.trimExtension, f),
+                            ),
                           ),
                         ),
                       ),
