@@ -23,6 +23,7 @@ class _RecipeNode {
 
 enum OptimizationStrategy {
   power,
+  rawResources,
   resources,
 }
 
@@ -30,10 +31,12 @@ class _ProductionLineState extends State<ProductionLine> {
   late final GameModel game;
   final Map<_RecipeNode, _RecipeNode> edges = {};
   final List<_RecipeNode> nodes = [];
-  final List<_RecipeNode> selectedNodes = [];
+  final List<_RecipeNode> leastResourceNodes = [];
+  final List<_RecipeNode> leastRawResourceNodes = [];
+  final List<_RecipeNode> leastPowerNodes = [];
   int depth = 0;
   int greatestDepth = 0;
-  OptimizationStrategy strategy = OptimizationStrategy.resources;
+  OptimizationStrategy strategy = OptimizationStrategy.rawResources;
 
   @override
   void initState() {
@@ -41,7 +44,9 @@ class _ProductionLineState extends State<ProductionLine> {
     game = Provider.of<GameModel>(context, listen: false);
     nodes.add(_RecipeNode(widget.rootRecipe, 0));
     nodes.first.selected = true;
-    selectedNodes.add(nodes.first);
+    leastResourceNodes.add(nodes.first);
+    leastRawResourceNodes.add(nodes.first);
+    leastPowerNodes.add(nodes.first);
     processRecipe(nodes.first);
     selectProductionLine(nodes.first);
   }
@@ -94,13 +99,50 @@ class _ProductionLineState extends State<ProductionLine> {
 
   bool gathering = true;
 
-  void selectProductionLine(_RecipeNode node) {}
+  void selectProductionLine(_RecipeNode node) {
+    var dnodes = downstreamNodes(node);
+    for (var n in dnodes) {
+      List<String> satisfiedInputs = [];
+      for (var i in node.recipe.input) {
+        if (satisfiedInputs.contains(i.name)) {
+          continue;
+        }
+        if (n.recipe.output.any((e) => i.name == e.name)) {
+          if (gathering) {
+            n.selected = true;
+            satisfiedInputs.add(i.name);
+            leastPowerNodes.add(n);
+            leastRawResourceNodes.add(n);
+            selectProductionLine(n);
+            if (validProductionLine(nodes.first)) {
+              gathering = false;
+            }
+          } else {
+            dnodes
+                .firstWhere((e) =>
+                    e.selected &&
+                    e.recipe.output.any(
+                      (o) => o.name == i.name,
+                    ))
+                .selected = false;
+            n.selected = true;
+            selectProductionLine(n);
+            if (validProductionLine(nodes.first)) {}
+          }
+        }
+      }
+    }
+  }
+
+  double totalPower() {}
+
+  double totalRawResources() {}
 
   // Computation methods /\
 
   // Displaying methods \/
   Iterable<ItemRecipe> nodesAtDepth(int d) =>
-      selectedNodes.where((e) => e.depth == d).map((e) => e.recipe);
+      leastRawResourceNodes.where((e) => e.depth == d).map((e) => e.recipe);
 
   @override
   Widget build(BuildContext context) {
