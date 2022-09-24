@@ -98,10 +98,10 @@ class _MainAppState extends State<MainApp> {
                         onTap: () => Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) => ChangeNotifierProvider(
-                              create: (context) => GameModel(),
-                              child:
-                                  GameProfile(f.path.basename.trimExtension, f),
+                            builder: (context) => ChangeNotifierProvider.value(
+                              value:
+                                  GameModel(f.path.basename.trimExtension, f),
+                              child: const AssetDisplay(),
                             ),
                           ),
                         ),

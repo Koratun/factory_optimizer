@@ -11,24 +11,6 @@ import 'package:provider/provider.dart';
 import 'string_utils.dart';
 import 'item_recipe.dart';
 
-class GameProfile extends StatefulWidget {
-  final String name;
-  final File gameIconFile;
-  final bool? isItem;
-  final String? assetName;
-
-  const GameProfile(
-    this.name,
-    this.gameIconFile, {
-    this.isItem,
-    this.assetName,
-    super.key,
-  });
-
-  @override
-  State<GameProfile> createState() => _GameProfileState();
-}
-
 // Building files must have following format:
 // Name-PowerConsumption.extension
 class BuildingData {
@@ -45,33 +27,27 @@ class BuildingData {
 }
 
 class GameModel extends ChangeNotifier {
+  final String gameName;
+  final File gameIcon;
+
+  GameModel(this.gameName, this.gameIcon);
+
   final Map<String, File> itemAssets = {};
   final Map<String, BuildingData> buildingAssets = {};
   final Map<String, List<ItemRecipe>> recipes = {};
   final Map<String, List<ItemRecipe>> uses = {};
 
   bool get loaded => itemAssets.isNotEmpty;
-}
 
-class _GameProfileState extends State<GameProfile> {
-  late final String rootDir;
-  late final GameModel game;
-
-  @override
-  void initState() {
-    super.initState();
-    Directory.current = "data/${widget.name}";
-    rootDir = Directory.current.path;
-
-    game = Provider.of<GameModel>(context, listen: false);
-    if (!game.loaded) {
+  void _load() {
+    if (!loaded) {
       if (Directory("assets").existsSync()) {
-        Directory("assets\\items").list().forEach((f) => setState(() =>
-            game.itemAssets[f.path.basename.trimExtension] = (f as File)));
+        Directory("assets\\items").list().forEach(
+            (f) => itemAssets[f.path.basename.trimExtension] = (f as File));
         Directory("assets\\buildings")
             .list()
             .map((f) => BuildingData(f as File))
-            .forEach((b) => setState(() => game.buildingAssets[b.name] = b));
+            .forEach((b) => buildingAssets[b.name] = b);
       } else {
         Directory("assets\\items").createSync(recursive: true);
         Directory("assets\\buildings").createSync();
@@ -89,29 +65,131 @@ class _GameProfileState extends State<GameProfile> {
   }
 
   void _registerRecipe(ItemRecipe r) {
-    setState(() {
-      for (var o in r.output) {
-        if (game.recipes.containsKey(o.name)) {
-          game.recipes[o.name]!.add(r);
-        } else {
-          game.recipes[o.name] = [r];
-        }
+    for (var o in r.output) {
+      if (recipes.containsKey(o.name)) {
+        recipes[o.name]!.add(r);
+      } else {
+        recipes[o.name] = [r];
       }
-      for (var inp in r.input) {
-        if (game.uses.containsKey(inp.name)) {
-          game.uses[inp.name]!.add(r);
-        } else {
-          game.uses[inp.name] = [r];
-        }
+    }
+    for (var inp in r.input) {
+      if (uses.containsKey(inp.name)) {
+        uses[inp.name]!.add(r);
+      } else {
+        uses[inp.name] = [r];
       }
-      if (r.building != null) {
-        if (game.uses.containsKey(r.building)) {
-          game.uses[r.building]!.add(r);
-        } else {
-          game.uses[r.building!] = [r];
-        }
+    }
+    if (r.building != null) {
+      if (uses.containsKey(r.building)) {
+        uses[r.building]!.add(r);
+      } else {
+        uses[r.building!] = [r];
       }
-    });
+    }
+    notifyListeners();
+  }
+
+  Iterable<Widget> itemList(
+    BuildContext context, {
+    bool returnSelection = false,
+  }) {
+    return itemAssets.entries.map(
+      (e) => Center(
+        child: SizedBox(
+          width: 400,
+          child: ListTile(
+            onTap: () => returnSelection
+                ? Navigator.pop(context, e.key)
+                : Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => ChangeNotifierProvider.value(
+                        value: this,
+                        child: AssetDisplay(
+                          isItem: true,
+                          assetName: e.key,
+                        ),
+                      ),
+                    ),
+                  ),
+            hoverColor: Colors.grey.shade700,
+            leading: Image.file(e.value),
+            title: Text(
+              e.key,
+              textWidthBasis: TextWidthBasis.longestLine,
+              style: Theme.of(context).textTheme.headlineSmall,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Iterable<Widget> buildingList(
+    BuildContext context, {
+    bool returnSelection = false,
+  }) {
+    return buildingAssets.values.map(
+      (b) => Center(
+        child: SizedBox(
+          width: 400,
+          child: ListTile(
+            onTap: () => returnSelection
+                ? Navigator.pop(context, b.name)
+                : Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => ChangeNotifierProvider.value(
+                        value: this,
+                        child: AssetDisplay(
+                          isItem: false,
+                          assetName: b.name,
+                        ),
+                      ),
+                    ),
+                  ),
+            hoverColor: Colors.grey.shade700,
+            leading: Image.file(b.file),
+            title: Text(
+              b.name,
+              textWidthBasis: TextWidthBasis.longestLine,
+              style: Theme.of(context).textTheme.headlineSmall,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class AssetDisplay extends StatefulWidget {
+  final bool? isItem;
+  final String? assetName;
+
+  const AssetDisplay({
+    this.isItem,
+    this.assetName,
+    super.key,
+  });
+
+  @override
+  State<AssetDisplay> createState() => _AssetDisplayState();
+}
+
+class _AssetDisplayState extends State<AssetDisplay> {
+  late final String rootDir;
+  late final GameModel game;
+
+  @override
+  void initState() {
+    super.initState();
+    game = Provider.of<GameModel>(context, listen: false);
+    if (Directory.current.path.basename != game.gameName) {
+      Directory.current = "data/${game.gameName}";
+    }
+    rootDir = Directory.current.path;
+
+    game._load();
   }
 
   @override
@@ -123,7 +201,7 @@ class _GameProfileState extends State<GameProfile> {
             builder: ((context, game, child) => Column(
                   children: [
                     Text(
-                      widget.isItem == null ? widget.name : widget.assetName!,
+                      widget.isItem == null ? game.gameName : widget.assetName!,
                       textAlign: TextAlign.center,
                       textWidthBasis: TextWidthBasis.longestLine,
                       style: Theme.of(context).textTheme.displaySmall,
@@ -151,7 +229,7 @@ class _GameProfileState extends State<GameProfile> {
                                     Theme.of(context).textTheme.headlineMedium,
                               ),
                               if (widget.isItem == null)
-                                for (var item in itemList()) item,
+                                for (var item in game.itemList(context)) item,
                               if (widget.isItem != null &&
                                   game.recipes.containsKey(widget.assetName))
                                 for (var r in game.recipes[widget.assetName]!)
@@ -183,7 +261,7 @@ class _GameProfileState extends State<GameProfile> {
                                     Theme.of(context).textTheme.headlineMedium,
                               ),
                               if (widget.isItem == null)
-                                for (var b in buildingList()) b,
+                                for (var b in game.buildingList(context)) b,
                               if (widget.isItem != null &&
                                   game.uses.containsKey(widget.assetName))
                                 for (var r in game.uses[widget.assetName]!)
@@ -207,7 +285,7 @@ class _GameProfileState extends State<GameProfile> {
             width: 64,
             top: 10,
             height: 64,
-            child: Image.file(widget.gameIconFile),
+            child: Image.file(game.gameIcon),
           ),
           Positioned.directional(
             textDirection: TextDirection.ltr,
@@ -230,74 +308,28 @@ class _GameProfileState extends State<GameProfile> {
     );
   }
 
-  Iterable<Widget> itemList({bool returnSelection = false}) {
-    return game.itemAssets.entries.map(
-      (e) => Center(
-        child: SizedBox(
-          width: 400,
-          child: ListTile(
-            onTap: () => returnSelection
-                ? Navigator.pop(context, e.key)
-                : Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => GameProfile(
-                        widget.name,
-                        widget.gameIconFile,
-                        isItem: true,
-                        assetName: e.key,
-                      ),
+  Widget routeableAsset(Widget child, String assetName, bool item) {
+    return IconButton(
+      color: Colors.transparent,
+      padding: EdgeInsets.zero,
+      tooltip: assetName,
+      hoverColor: Colors.white.withOpacity(0.25),
+      onPressed: assetName == widget.assetName
+          ? null
+          : () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => ChangeNotifierProvider.value(
+                    value: game,
+                    child: AssetDisplay(
+                      isItem: item,
+                      assetName: assetName,
                     ),
                   ),
-            hoverColor: Colors.grey.shade700,
-            leading: Image.file(e.value),
-            title: Text(
-              e.key,
-              textWidthBasis: TextWidthBasis.longestLine,
-              style: Theme.of(context).textTheme.headlineSmall,
-            ),
-          ),
-        ),
-      ),
+                ),
+              ),
+      icon: child,
     );
-  }
-
-  Iterable<Widget> buildingList({bool returnSelection = false}) {
-    return game.buildingAssets.values.map(
-      (b) => Center(
-        child: SizedBox(
-          width: 400,
-          child: ListTile(
-            onTap: () => returnSelection
-                ? Navigator.pop(context, b.name)
-                : Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => GameProfile(
-                        widget.name,
-                        widget.gameIconFile,
-                        isItem: false,
-                        assetName: b.name,
-                      ),
-                    ),
-                  ),
-            hoverColor: Colors.grey.shade700,
-            leading: Image.file(b.file),
-            title: Text(
-              b.name,
-              textWidthBasis: TextWidthBasis.longestLine,
-              style: Theme.of(context).textTheme.headlineSmall,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget routeableAsset(Widget child, String assetName) {
-    if (assetName == widget.assetName) {
-      return child;
-    }
   }
 
   Widget recipe(ItemRecipe r, GameModel game) {
@@ -323,7 +355,11 @@ class _GameProfileState extends State<GameProfile> {
                           SizedBox(
                             width: 48,
                             height: 48,
-                            child: Image.file(game.itemAssets[inp.name]!),
+                            child: routeableAsset(
+                              Image.file(game.itemAssets[inp.name]!),
+                              inp.name,
+                              true,
+                            ),
                           ),
                           Text(
                             inp.amount.toString(),
@@ -353,8 +389,11 @@ class _GameProfileState extends State<GameProfile> {
                         SizedBox(
                           width: 64,
                           height: 64,
-                          child:
-                              Image.file(game.buildingAssets[r.building]!.file),
+                          child: routeableAsset(
+                            Image.file(game.buildingAssets[r.building]!.file),
+                            r.building!,
+                            false,
+                          ),
                         ),
                         Text(r.rate != r.rate.toInt()
                             ? "${r.rate}/min"
@@ -382,14 +421,21 @@ class _GameProfileState extends State<GameProfile> {
                             SizedBox(
                               width: 48,
                               height: 48,
-                              child:
-                                  Image.file(game.buildingAssets[o.name]!.file),
+                              child: routeableAsset(
+                                Image.file(game.buildingAssets[o.name]!.file),
+                                o.name,
+                                false,
+                              ),
                             ),
                           if (game.itemAssets.containsKey(o.name))
                             SizedBox(
                               width: 48,
                               height: 48,
-                              child: Image.file(game.itemAssets[o.name]!),
+                              child: routeableAsset(
+                                Image.file(game.itemAssets[o.name]!),
+                                o.name,
+                                true,
+                              ),
                             ),
                           if (!game.buildingAssets.containsKey(o.name))
                             Text(
@@ -431,8 +477,8 @@ class _GameProfileState extends State<GameProfile> {
                 style: Theme.of(context).textTheme.headlineMedium,
               ),
               for (var a in item
-                  ? itemList(returnSelection: true)
-                  : buildingList(returnSelection: true))
+                  ? game.itemList(context, returnSelection: true)
+                  : game.buildingList(context, returnSelection: true))
                 a,
               Center(
                   child: item
@@ -813,7 +859,7 @@ class _GameProfileState extends State<GameProfile> {
                             File("recipes/${nameField.text}.json")
                                 .writeAsStringSync(
                                     json.encode(newRecipe!.toJson()));
-                            _registerRecipe(newRecipe!);
+                            game._registerRecipe(newRecipe!);
                             newRecipe = null;
                             Navigator.pop(context);
                           }
