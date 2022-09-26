@@ -373,10 +373,7 @@ class GameModel extends ChangeNotifier {
               children: [
                 if (outputIsItem)
                   Text(
-                    buildingAssets[assetName]!.cost ==
-                            buildingAssets[assetName]!.cost.toInt()
-                        ? "${buildingAssets[assetName]!.cost.toInt()} MW"
-                        : "${buildingAssets[assetName]!.cost} MW",
+                    "${buildingAssets[assetName]!.cost.pretty} MW",
                     style: Theme.of(context).textTheme.labelSmall,
                     textAlign: TextAlign.center,
                   ),
@@ -1312,9 +1309,7 @@ class _AssetDisplayState extends State<AssetDisplay> {
                             false,
                           ),
                         ),
-                        Text(r.rate != r.rate.toInt()
-                            ? "${r.rate}/min"
-                            : "${r.rate.toInt()}/min"),
+                        Text("${r.rate.pretty}/min"),
                       ],
                     ),
                   const Icon(
