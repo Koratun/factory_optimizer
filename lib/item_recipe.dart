@@ -13,6 +13,13 @@ class ItemRecipe {
   String? building;
   // Minimum required building to create item
 
+  double? get operationalRate {
+    if (output.isEmpty || rate <= 0 || output.first.amount <= 0) {
+      return null;
+    }
+    return rate / output.first.amount;
+  }
+
   factory ItemRecipe.fromJson(Map<String, dynamic> json) =>
       _$ItemRecipeFromJson(json);
 
