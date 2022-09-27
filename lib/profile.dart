@@ -1112,86 +1112,84 @@ class _AssetDisplayState extends State<AssetDisplay> {
       body: Stack(
         children: [
           Consumer<GameModel>(
-            builder: ((context, game, child) => Column(
+            builder: (context, game, child) => Column(
+              children: [
+                Text(
+                  widget.isItem == null ? game.gameName : widget.assetName!,
+                  textAlign: TextAlign.center,
+                  textWidthBasis: TextWidthBasis.longestLine,
+                  style: Theme.of(context).textTheme.displaySmall,
+                ),
+                if (widget.isItem != null)
+                  SizedBox(
+                    width: 64,
+                    height: 64,
+                    child: Image.file(widget.isItem!
+                        ? game.itemAssets[widget.assetName]!
+                        : game.buildingAssets[widget.assetName]!.file),
+                  ),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      widget.isItem == null ? game.gameName : widget.assetName!,
-                      textAlign: TextAlign.center,
-                      textWidthBasis: TextWidthBasis.longestLine,
-                      style: Theme.of(context).textTheme.displaySmall,
-                    ),
-                    if (widget.isItem != null)
-                      SizedBox(
-                        width: 64,
-                        height: 64,
-                        child: Image.file(widget.isItem!
-                            ? game.itemAssets[widget.assetName]!
-                            : game.buildingAssets[widget.assetName]!.file),
+                    Expanded(
+                      child: ListView(
+                        shrinkWrap: true,
+                        children: [
+                          Text(
+                            widget.isItem == null ? "Items" : "Recipes",
+                            textAlign: TextAlign.center,
+                            textWidthBasis: TextWidthBasis.longestLine,
+                            style: Theme.of(context).textTheme.headlineMedium,
+                          ),
+                          if (widget.isItem == null)
+                            for (var item in game.itemList(context)) item,
+                          if (widget.isItem != null &&
+                              game.recipes.containsKey(widget.assetName))
+                            for (var r in game.recipes[widget.assetName]!)
+                              Padding(
+                                padding: const EdgeInsets.all(4),
+                                child: recipe(r, game),
+                              ),
+                          if (widget.isItem != null &&
+                              (widget.isItem! ||
+                                  // Buildings can only have one recipe
+                                  (!widget.isItem! &&
+                                      !game.recipes
+                                          .containsKey(widget.assetName))))
+                            newRecipeWidget(context),
+                          if (widget.isItem == null)
+                            Center(child: game.newItemWidget(context)),
+                        ],
                       ),
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(
-                          child: ListView(
-                            shrinkWrap: true,
-                            children: [
-                              Text(
-                                widget.isItem == null ? "Items" : "Recipes",
-                                textAlign: TextAlign.center,
-                                textWidthBasis: TextWidthBasis.longestLine,
-                                style:
-                                    Theme.of(context).textTheme.headlineMedium,
-                              ),
-                              if (widget.isItem == null)
-                                for (var item in game.itemList(context)) item,
-                              if (widget.isItem != null &&
-                                  game.recipes.containsKey(widget.assetName))
-                                for (var r in game.recipes[widget.assetName]!)
-                                  Padding(
-                                    padding: const EdgeInsets.all(4),
-                                    child: recipe(r, game),
-                                  ),
-                              if (widget.isItem != null &&
-                                  (widget.isItem! ||
-                                      // Buildings can only have one recipe
-                                      (!widget.isItem! &&
-                                          !game.recipes
-                                              .containsKey(widget.assetName))))
-                                newRecipeWidget(context),
-                              if (widget.isItem == null)
-                                Center(child: game.newItemWidget(context)),
-                            ],
+                    ),
+                    Expanded(
+                      child: ListView(
+                        shrinkWrap: true,
+                        children: [
+                          Text(
+                            widget.isItem == null ? "Buildings" : "Uses",
+                            textAlign: TextAlign.center,
+                            textWidthBasis: TextWidthBasis.longestLine,
+                            style: Theme.of(context).textTheme.headlineMedium,
                           ),
-                        ),
-                        Expanded(
-                          child: ListView(
-                            shrinkWrap: true,
-                            children: [
-                              Text(
-                                widget.isItem == null ? "Buildings" : "Uses",
-                                textAlign: TextAlign.center,
-                                textWidthBasis: TextWidthBasis.longestLine,
-                                style:
-                                    Theme.of(context).textTheme.headlineMedium,
+                          if (widget.isItem == null)
+                            for (var b in game.buildingList(context)) b,
+                          if (widget.isItem != null &&
+                              game.uses.containsKey(widget.assetName))
+                            for (var r in game.uses[widget.assetName]!)
+                              Padding(
+                                padding: const EdgeInsets.all(4),
+                                child: recipe(r, game),
                               ),
-                              if (widget.isItem == null)
-                                for (var b in game.buildingList(context)) b,
-                              if (widget.isItem != null &&
-                                  game.uses.containsKey(widget.assetName))
-                                for (var r in game.uses[widget.assetName]!)
-                                  Padding(
-                                    padding: const EdgeInsets.all(4),
-                                    child: recipe(r, game),
-                                  ),
-                              if (widget.isItem == null)
-                                Center(child: game.newBuildingWidget(context)),
-                            ],
-                          ),
-                        ),
-                      ],
+                          if (widget.isItem == null)
+                            Center(child: game.newBuildingWidget(context)),
+                        ],
+                      ),
                     ),
                   ],
-                )),
+                ),
+              ],
+            ),
           ),
           Positioned.directional(
             textDirection: TextDirection.ltr,
