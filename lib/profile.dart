@@ -10,6 +10,7 @@ import 'package:provider/provider.dart';
 
 import 'string_utils.dart';
 import 'item_recipe.dart';
+import 'production_line.dart';
 
 // Building files must have following format:
 // Name-PowerConsumption.extension
@@ -1248,117 +1249,132 @@ class _AssetDisplayState extends State<AssetDisplay> {
     return SizedBox(
       width: 400,
       height: 150,
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        color: Colors.grey.shade800,
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Expanded(
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  for (var inp in r.input.reversed)
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 4),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          SizedBox(
-                            width: 48,
-                            height: 48,
-                            child: routeableAsset(
-                              Image.file(game.itemAssets[inp.name]!),
-                              inp.name,
-                              true,
-                            ),
-                          ),
-                          Text(
-                            inp.amount.toString(),
-                            textAlign: TextAlign.center,
-                          ),
-                        ],
-                      ),
-                    ),
-                ],
+      child: GestureDetector(
+        onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => ChangeNotifierProvider.value(
+              value: game,
+              child: FactoryOverview(
+                [r],
+                selectedRecipe: r,
+                itemName: widget.assetName!,
               ),
             ),
-            Expanded(
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  if (r.building != null)
+          ),
+        ),
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          color: Colors.grey.shade800,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    for (var inp in r.input.reversed)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 4),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            SizedBox(
+                              width: 48,
+                              height: 48,
+                              child: routeableAsset(
+                                Image.file(game.itemAssets[inp.name]!),
+                                inp.name,
+                                true,
+                              ),
+                            ),
+                            Text(
+                              inp.amount.toString(),
+                              textAlign: TextAlign.center,
+                            ),
+                          ],
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    if (r.building != null)
+                      const Icon(
+                        Icons.arrow_forward,
+                        color: Colors.white,
+                        size: 32,
+                      ),
+                    if (r.building != null)
+                      Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text("${game.buildingAssets[r.building]!.cost} MW"),
+                          SizedBox(
+                            width: 64,
+                            height: 64,
+                            child: routeableAsset(
+                              Image.file(game.buildingAssets[r.building]!.file),
+                              r.building!,
+                              false,
+                            ),
+                          ),
+                          Text("${r.rate.pretty}/min"),
+                        ],
+                      ),
                     const Icon(
                       Icons.arrow_forward,
                       color: Colors.white,
                       size: 32,
                     ),
-                  if (r.building != null)
-                    Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text("${game.buildingAssets[r.building]!.cost} MW"),
-                        SizedBox(
-                          width: 64,
-                          height: 64,
-                          child: routeableAsset(
-                            Image.file(game.buildingAssets[r.building]!.file),
-                            r.building!,
-                            false,
-                          ),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: Row(
+                  children: [
+                    for (var o in r.output)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 4),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            if (game.buildingAssets.containsKey(o.name))
+                              SizedBox(
+                                width: 48,
+                                height: 48,
+                                child: routeableAsset(
+                                  Image.file(game.buildingAssets[o.name]!.file),
+                                  o.name,
+                                  false,
+                                ),
+                              ),
+                            if (game.itemAssets.containsKey(o.name))
+                              SizedBox(
+                                width: 48,
+                                height: 48,
+                                child: routeableAsset(
+                                  Image.file(game.itemAssets[o.name]!),
+                                  o.name,
+                                  true,
+                                ),
+                              ),
+                            if (!game.buildingAssets.containsKey(o.name))
+                              Text(
+                                o.amount.toString(),
+                                textAlign: TextAlign.center,
+                              ),
+                          ],
                         ),
-                        Text("${r.rate.pretty}/min"),
-                      ],
-                    ),
-                  const Icon(
-                    Icons.arrow_forward,
-                    color: Colors.white,
-                    size: 32,
-                  ),
-                ],
-              ),
-            ),
-            Expanded(
-              child: Row(
-                children: [
-                  for (var o in r.output)
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 4),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          if (game.buildingAssets.containsKey(o.name))
-                            SizedBox(
-                              width: 48,
-                              height: 48,
-                              child: routeableAsset(
-                                Image.file(game.buildingAssets[o.name]!.file),
-                                o.name,
-                                false,
-                              ),
-                            ),
-                          if (game.itemAssets.containsKey(o.name))
-                            SizedBox(
-                              width: 48,
-                              height: 48,
-                              child: routeableAsset(
-                                Image.file(game.itemAssets[o.name]!),
-                                o.name,
-                                true,
-                              ),
-                            ),
-                          if (!game.buildingAssets.containsKey(o.name))
-                            Text(
-                              o.amount.toString(),
-                              textAlign: TextAlign.center,
-                            ),
-                        ],
                       ),
-                    ),
-                ],
-              ),
-            )
-          ],
+                  ],
+                ),
+              )
+            ],
+          ),
         ),
       ),
     );
