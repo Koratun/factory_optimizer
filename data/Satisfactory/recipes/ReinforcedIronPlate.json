@@ -1,0 +1,1 @@
+{"input":[{"name":"Iron Plate","amount":6},{"name":"Screw","amount":12}],"output":[{"name":"Reinforced Iron Plate","amount":1}],"rate":5.0,"building":"Assembler"}

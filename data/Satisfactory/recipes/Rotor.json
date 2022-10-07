@@ -1,0 +1,1 @@
+{"input":[{"name":"Iron Rod","amount":5},{"name":"Screw","amount":25}],"output":[{"name":"Rotor","amount":1}],"rate":4.0,"building":"Assembler"}
