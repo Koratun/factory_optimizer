@@ -208,7 +208,7 @@ class GameModel extends ChangeNotifier {
     bool input,
   ) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 4),
+      padding: const EdgeInsets.only(left: 4, right: 4, top: 16),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
@@ -319,50 +319,51 @@ class GameModel extends ChangeNotifier {
     void Function(void Function()) setState,
     String assetName, {
     required bool item,
-    required bool outputIsItem,
     required bool input,
     required String outputName,
   }) {
-    if (outputIsItem && !recipeFields.containsKey(assetName)) {
+    if (!recipeFields.containsKey(assetName)) {
       recipeFields[assetName] = TextEditingController(text: "0");
     }
     return Padding(
-      padding: const EdgeInsets.only(left: 4, right: 4, top: 8),
+      padding: const EdgeInsets.only(left: 4, right: 4, top: 10),
       child: item
           ? Column(
               mainAxisSize: MainAxisSize.min,
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                SizedBox(
-                  width: 48,
-                  height: 48,
-                  child: _cancelable(
-                    setState,
-                    Image.file(itemAssets[assetName]!),
-                    assetName,
-                    item,
-                    input,
-                    outputName: outputName,
+                Padding(
+                  padding: const EdgeInsets.only(top: 10, bottom: 4),
+                  child: SizedBox(
+                    width: 48,
+                    height: 48,
+                    child: _cancelable(
+                      setState,
+                      Image.file(itemAssets[assetName]!),
+                      assetName,
+                      item,
+                      input,
+                      outputName: outputName,
+                    ),
                   ),
                 ),
-                Padding(
-                  padding: const EdgeInsets.only(top: 12),
-                  child: SizedBox(
-                    width: 40,
-                    height: 20,
-                    child: TextField(
-                      controller: recipeFields[assetName],
-                      textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.labelSmall,
-                      inputFormatters: [
-                        FilteringTextInputFormatter.allow(RegExp(r"\d+\.?\d*"))
-                      ],
-                      decoration: InputDecoration(
-                        filled: true,
-                        fillColor: Colors.grey.shade800,
-                        border: InputBorder.none,
-                        isCollapsed: true,
-                      ),
+                Container(
+                  padding: const EdgeInsets.only(top: 4),
+                  width: 60,
+                  height: 20,
+                  color: Colors.grey.shade700,
+                  child: TextField(
+                    controller: recipeFields[assetName],
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.labelMedium,
+                    inputFormatters: [
+                      FilteringTextInputFormatter.allow(RegExp(r"\d+\.?\d*"))
+                    ],
+                    decoration: InputDecoration(
+                      filled: false,
+                      fillColor: Colors.grey.shade700,
+                      border: InputBorder.none,
+                      isCollapsed: true,
                     ),
                   ),
                 ),
@@ -372,12 +373,11 @@ class GameModel extends ChangeNotifier {
               mainAxisSize: MainAxisSize.min,
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                if (outputIsItem)
-                  Text(
-                    "${buildingAssets[assetName]!.cost.pretty} MW",
-                    style: Theme.of(context).textTheme.labelSmall,
-                    textAlign: TextAlign.center,
-                  ),
+                Text(
+                  "${buildingAssets[assetName]!.cost.pretty} MW",
+                  style: Theme.of(context).textTheme.labelSmall,
+                  textAlign: TextAlign.center,
+                ),
                 Padding(
                   padding: const EdgeInsets.symmetric(vertical: 4),
                   child: SizedBox(
@@ -393,27 +393,28 @@ class GameModel extends ChangeNotifier {
                     ),
                   ),
                 ),
-                if (outputIsItem)
-                  SizedBox(
-                    width: 60,
-                    height: 20,
-                    child: TextField(
-                      controller: recipeFields[assetName],
-                      textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.labelSmall,
-                      inputFormatters: [
-                        FilteringTextInputFormatter.allow(RegExp(r"\d+\.?\d*"))
-                      ],
-                      decoration: InputDecoration(
-                        filled: true,
-                        fillColor: Colors.grey.shade800,
-                        border: InputBorder.none,
-                        isCollapsed: true,
-                        suffixText: "/min",
-                        suffixStyle: Theme.of(context).textTheme.labelSmall,
-                      ),
+                Container(
+                  padding: const EdgeInsets.only(top: 4, right: 2),
+                  width: 60,
+                  height: 20,
+                  color: Colors.grey.shade700,
+                  child: TextField(
+                    controller: recipeFields[assetName],
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.labelMedium,
+                    inputFormatters: [
+                      FilteringTextInputFormatter.allow(RegExp(r"\d+\.?\d*"))
+                    ],
+                    decoration: InputDecoration(
+                      filled: false,
+                      fillColor: Colors.grey.shade700,
+                      border: InputBorder.none,
+                      isCollapsed: true,
+                      suffixText: input ? "/min" : null,
+                      suffixStyle: Theme.of(context).textTheme.labelMedium,
                     ),
                   ),
+                ),
               ],
             ),
     );
@@ -422,15 +423,8 @@ class GameModel extends ChangeNotifier {
   Widget newRecipeDialog(
     BuildContext context,
     String outputName,
-    bool outputIsItem,
   ) {
     var nameField = TextEditingController();
-    newRecipe = ItemRecipe(
-      [],
-      [ItemAmount(outputName, outputIsItem ? 0 : 1)],
-      0,
-      null,
-    );
 
     return StatefulBuilder(
       builder: (context, setState) => Dialog(
@@ -438,7 +432,7 @@ class GameModel extends ChangeNotifier {
         child: Container(
           color: Colors.grey.shade900,
           child: SizedBox(
-            width: 800,
+            width: 900,
             height: 220,
             child: Container(
               padding: const EdgeInsets.all(16),
@@ -480,7 +474,6 @@ class GameModel extends ChangeNotifier {
                                 inp.name,
                                 item: true,
                                 input: true,
-                                outputIsItem: outputIsItem,
                                 outputName: outputName,
                               ),
                           ],
@@ -490,28 +483,26 @@ class GameModel extends ChangeNotifier {
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                           children: [
-                            if (outputIsItem)
-                              const Icon(
-                                Icons.arrow_forward,
-                                color: Colors.white,
-                                size: 32,
-                              ),
-                            if (outputIsItem && newRecipe!.building == null)
+                            const Icon(
+                              Icons.arrow_forward,
+                              color: Colors.white,
+                              size: 32,
+                            ),
+                            if (newRecipe!.building == null)
                               _addRecipeReagent(
                                 context,
                                 setState,
                                 false,
-                                true,
+                                false,
                                 false,
                               ),
-                            if (outputIsItem && newRecipe!.building != null)
+                            if (newRecipe!.building != null)
                               _reagent(
                                 context,
                                 setState,
                                 newRecipe!.building!,
                                 item: false,
                                 input: true,
-                                outputIsItem: outputIsItem,
                                 outputName: outputName,
                               ),
                             const Icon(
@@ -530,12 +521,11 @@ class GameModel extends ChangeNotifier {
                                 context,
                                 setState,
                                 o.name,
-                                item: outputIsItem,
+                                item: itemAssets.containsKey(o.name),
                                 input: false,
-                                outputIsItem: outputIsItem,
                                 outputName: outputName,
                               ),
-                            if (outputIsItem && newRecipe!.output.length <= 4)
+                            if (newRecipe!.output.length <= 4)
                               _addRecipeReagent(
                                 context,
                                 setState,
@@ -559,11 +549,6 @@ class GameModel extends ChangeNotifier {
                       if (newRecipe!.input.isEmpty) {
                         _errorAlert(
                             context, "Recipe must have at least one input.");
-                        failed = true;
-                      }
-                      if (outputIsItem && newRecipe!.building == null) {
-                        _errorAlert(
-                            context, "Must specify a building for the recipe.");
                         failed = true;
                       }
                       if (newRecipe!.building != null &&
@@ -598,7 +583,7 @@ class GameModel extends ChangeNotifier {
                         for (var o in newRecipe!.output) {
                           o.amount = int.tryParse(recipeFields[o.name]!.text)!;
                         }
-                        if (outputIsItem) {
+                        if (newRecipe!.building != null) {
                           newRecipe!.rate = double.tryParse(
                               recipeFields[newRecipe!.building!]!.text)!;
                         }
@@ -608,7 +593,7 @@ class GameModel extends ChangeNotifier {
                         _registerRecipe(newRecipe!);
                         newRecipe = null;
                         recipeFields.clear();
-                        Navigator.pop(context);
+                        Navigator.pop(context, true);
                       }
                     },
                     child: const Text("Add Recipe"),
@@ -856,9 +841,9 @@ class GameModel extends ChangeNotifier {
                       if (_formKey.currentState!.validate()) {
                         itemAssets[tempFile!.path.basename.trimExtension] =
                             tempFile!;
-                        tempFile = null;
                         Navigator.pop(
                             context, tempFile!.path.basename.trimExtension);
+                        tempFile = null;
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(content: Text('Item added!')),
                         );
@@ -1250,19 +1235,21 @@ class _AssetDisplayState extends State<AssetDisplay> {
       width: 400,
       height: 150,
       child: GestureDetector(
-        onTap: () => Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => ChangeNotifierProvider.value(
-              value: game,
-              child: FactoryOverview(
-                [r],
-                selectedRecipe: r,
-                itemName: widget.assetName!,
-              ),
-            ),
-          ),
-        ),
+        onTap: r.building != null
+            ? () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => ChangeNotifierProvider.value(
+                      value: game,
+                      child: FactoryOverview(
+                        [r],
+                        selectedRecipe: r,
+                        itemName: r.output.map((o) => o.name).join("/"),
+                      ),
+                    ),
+                  ),
+                )
+            : null,
         child: Container(
           padding: const EdgeInsets.all(16),
           color: Colors.grey.shade800,
@@ -1299,6 +1286,7 @@ class _AssetDisplayState extends State<AssetDisplay> {
                 ),
               ),
               Expanded(
+                flex: r.building != null ? 1 : 0,
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
@@ -1389,14 +1377,21 @@ class _AssetDisplayState extends State<AssetDisplay> {
           height: 150,
           width: 400,
           child: InkWell(
-            onTap: () => showDialog(
-              context: context,
-              builder: (context) => game.newRecipeDialog(
-                context,
-                widget.assetName!,
-                widget.isItem!,
-              ),
-            ),
+            onTap: () {
+              game.newRecipe = ItemRecipe(
+                [],
+                [ItemAmount(widget.assetName!, 1)],
+                0,
+                null,
+              );
+              showDialog(
+                context: context,
+                builder: (context) => game.newRecipeDialog(
+                  context,
+                  widget.assetName!,
+                ),
+              );
+            },
             hoverColor: Colors.grey.shade700,
             child: Center(
               child: Row(
