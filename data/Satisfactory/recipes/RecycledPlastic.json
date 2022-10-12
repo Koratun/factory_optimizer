@@ -1,0 +1,1 @@
+{"input":[{"name":"Fuel","amount":6},{"name":"Rubber","amount":6}],"output":[{"name":"Plastic","amount":12}],"rate":60.0,"building":"Refinery"}

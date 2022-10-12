@@ -1,0 +1,1 @@
+{"input":[{"name":"Silica","amount":11},{"name":"Copper Sheet","amount":11}],"output":[{"name":"Circuit Board","amount":5}],"rate":12.5,"building":"Assembler"}

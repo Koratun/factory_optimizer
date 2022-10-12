@@ -1,0 +1,1 @@
+{"input":[{"name":"Reinforced Iron Plate","amount":5},{"name":"Cable","amount":28},{"name":"Quartz Crystal","amount":36}],"output":[{"name":"Crystal Oscillator","amount":2}],"rate":1.0,"building":"Manufacturer"}

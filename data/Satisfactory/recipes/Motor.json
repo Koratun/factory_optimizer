@@ -1,0 +1,1 @@
+{"input":[{"name":"Stator","amount":2},{"name":"Rotor","amount":2}],"output":[{"name":"Motor","amount":1}],"rate":5.0,"building":"Assembler"}

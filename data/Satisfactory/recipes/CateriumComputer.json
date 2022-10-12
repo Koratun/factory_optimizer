@@ -1,0 +1,1 @@
+{"input":[{"name":"Rubber","amount":12},{"name":"Quickwire","amount":28},{"name":"Circuit Board","amount":7}],"output":[{"name":"Computer","amount":1}],"rate":3.75,"building":"Manufacturer"}

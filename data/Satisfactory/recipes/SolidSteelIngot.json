@@ -1,0 +1,1 @@
+{"input":[{"name":"Coal","amount":2},{"name":"Iron Ingot","amount":2}],"output":[{"name":"Steel Ingot","amount":3}],"rate":60.0,"building":"Foundry"}

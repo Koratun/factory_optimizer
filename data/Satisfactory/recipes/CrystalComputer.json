@@ -1,0 +1,1 @@
+{"input":[{"name":"Circuit Board","amount":8},{"name":"Crystal Oscillator","amount":3}],"output":[{"name":"Computer","amount":3}],"rate":2.8125,"building":"Assembler"}

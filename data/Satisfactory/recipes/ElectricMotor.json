@@ -1,0 +1,1 @@
+{"input":[{"name":"Rotor","amount":2},{"name":"Electromagnetic Control Rod","amount":1}],"output":[{"name":"Motor","amount":2}],"rate":7.5,"building":"Assembler"}

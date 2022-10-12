@@ -1,0 +1,1 @@
+{"input":[{"name":"Water","amount":4},{"name":"Polymer Resin","amount":4}],"output":[{"name":"Rubber","amount":2}],"rate":20.0,"building":"Refinery"}

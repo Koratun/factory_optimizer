@@ -1,0 +1,1 @@
+{"input":[{"name":"Circuit Board","amount":2},{"name":"Silica","amount":25},{"name":"Quickwire","amount":60}],"output":[{"name":"High-Speed Connector","amount":2}],"rate":3.0,"building":"Manufacturer"}

@@ -1,0 +1,1 @@
+{"input":[{"name":"Concrete","amount":5},{"name":"Steel Beam","amount":4}],"output":[{"name":"Encased Industrial Beam","amount":1}],"rate":6.0,"building":"Assembler"}

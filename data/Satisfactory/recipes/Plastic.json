@@ -1,0 +1,1 @@
+{"input":[{"name":"Crude Oil","amount":3}],"output":[{"name":"Plastic","amount":2},{"name":"Heavy Oil Residue","amount":1}],"rate":20.0,"building":"Refinery"}

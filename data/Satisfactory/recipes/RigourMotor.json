@@ -1,0 +1,1 @@
+{"input":[{"name":"Crystal Oscillator","amount":1},{"name":"Stator","amount":3},{"name":"Rotor","amount":3}],"output":[{"name":"Motor","amount":6}],"rate":7.5,"building":"Manufacturer"}

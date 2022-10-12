@@ -1,0 +1,1 @@
+{"input":[{"name":"Wire","amount":8},{"name":"Steel Pipe","amount":3}],"output":[{"name":"Stator","amount":1}],"rate":5.0,"building":"Assembler"}
