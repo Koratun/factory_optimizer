@@ -7,6 +7,7 @@ import 'package:boxy/boxy.dart';
 import 'profile.dart';
 import 'item_recipe.dart';
 import 'string_utils.dart';
+import 'delta_text.dart';
 
 class FactoryOverview extends StatefulWidget {
   final List<ItemRecipe> rootRecipes;
@@ -58,50 +59,67 @@ class _RecipeEdge {
 enum OptimizationStrategy {
   power,
   rawResources,
-  resources,
+  speed,
+  efficiency,
 }
 
 class _OptimizerInfo {
   double power;
   _RecipeNode powerNode;
-  double resources;
-  _RecipeNode resourceNode;
+  double speed;
+  _RecipeNode speedNode;
   double rawResources;
   _RecipeNode rawResourceNode;
+
+  double coalescedEfficiency;
+  // Required for efficiency calculations
+  int subNodes = 1;
+  _RecipeNode efficientNode;
 
   _OptimizerInfo(
     this.power,
     this.powerNode,
-    this.resources,
-    this.resourceNode,
+    this.speed,
+    this.speedNode,
     this.rawResources,
     this.rawResourceNode,
+    this.coalescedEfficiency,
+    this.efficientNode,
   );
 
   _OptimizerInfo.zero(_RecipeNode self)
       : power = 0,
-        resources = 0,
+        speed = 0,
         rawResources = 0,
+        coalescedEfficiency = 1,
         powerNode = self,
-        resourceNode = self,
-        rawResourceNode = self;
+        speedNode = self,
+        rawResourceNode = self,
+        efficientNode = self;
 
   _OptimizerInfo operator +(_OptimizerInfo other) {
     power += other.power;
-    resources += other.resources;
+    speed += other.speed;
     rawResources += other.rawResources;
+    subNodes += other.subNodes;
+    coalescedEfficiency += other.coalescedEfficiency;
     return this;
   }
 
-  void setLower(_OptimizerInfo o) {
+  double get efficiency => coalescedEfficiency / subNodes;
+
+  void setBetter(_OptimizerInfo o) {
     if (o.power < power) {
       setPower(o);
     }
-    if (o.resources < resources) {
-      setResources(o);
+    if (o.speed > speed) {
+      setSpeed(o);
     }
     if (o.rawResources < rawResources) {
       setRawResources(o);
+    }
+    if (o.efficiency > efficiency) {
+      setEfficiency(o);
     }
   }
 
@@ -110,39 +128,55 @@ class _OptimizerInfo {
     powerNode = o.powerNode;
   }
 
-  void setResources(_OptimizerInfo o) {
-    resources = o.resources;
-    resourceNode = o.resourceNode;
+  void setSpeed(_OptimizerInfo o) {
+    speed = o.speed;
+    speedNode = o.speedNode;
   }
 
   void setRawResources(_OptimizerInfo o) {
     rawResources = o.rawResources;
     rawResourceNode = o.rawResourceNode;
   }
+
+  void setEfficiency(_OptimizerInfo o) {
+    coalescedEfficiency = o.coalescedEfficiency;
+    subNodes = o.subNodes;
+    efficientNode = o.efficientNode;
+  }
 }
 
 class _ProductionGraph {
   final GameModel game;
 
-  late final _OptimizerInfo totalCost;
+  late final _OptimizerInfo optimizedData;
   final List<_RecipeEdge> edges = [];
   final List<_RecipeNode> nodes = [];
-  final List<_RecipeNode> leastResourceNodes = [];
+  final List<_RecipeNode> quickestNodes = [];
   final List<_RecipeNode> leastRawResourceNodes = [];
   final List<_RecipeNode> leastPowerNodes = [];
+  final List<_RecipeNode> mostEfficientNodes = [];
 
   int depth = 0;
   int greatestDepth = 0;
 
   bool recalculate = true;
 
-  _ProductionGraph(this.game, rootRecipe) {
+  _ProductionGraph(this.game, rootRecipe, {String? rootName}) {
     nodes.add(_RecipeNode(rootRecipe, 0));
-    leastResourceNodes.add(nodes.first);
+    quickestNodes.add(nodes.first);
     leastRawResourceNodes.add(nodes.first);
     leastPowerNodes.add(nodes.first);
+    mostEfficientNodes.add(nodes.first);
     processRecipe(nodes.first);
-    totalCost = scanGraph(nodes.first);
+    optimizedData = scanGraph(nodes.first);
+    if (rootName != null) {
+      optimizedData.speed = nodes.first.recipe.output
+              .firstWhere((o) => o.name == rootName)
+              .amount *
+          (nodes.first.recipe.operationalRate ?? 1);
+    } else {
+      optimizedData.speed = nodes.first.recipe.rate;
+    }
   }
 
   void processRecipe(_RecipeNode node, {_RecipeEdge? upstreamEdge}) {
@@ -173,6 +207,8 @@ class _ProductionGraph {
     _RecipeEdge? upEdge;
     try {
       upEdge = edges.where((e) => e.incoming == node).single;
+      node.myCost.coalescedEfficiency =
+          _calculateEfficiency(upEdge.recipeMultiplier);
       // ignore: empty_catches
     } on StateError {}
     int buildingsRequired = upEdge?.recipeMultiplier.ceil() ?? 1;
@@ -186,20 +222,41 @@ class _ProductionGraph {
         if (inputCost == null) {
           inputCost = cost;
         } else {
-          inputCost.setLower(cost);
+          inputCost.setBetter(cost);
         }
       }
       if (inputCost != null) {
         leastPowerNodes.add(inputCost.powerNode);
-        leastResourceNodes.add(inputCost.resourceNode);
+        quickestNodes.add(inputCost.speedNode);
         leastRawResourceNodes.add(inputCost.rawResourceNode);
+        mostEfficientNodes.add(inputCost.efficientNode);
         node.myCost += inputCost;
       } else {
-        node.myCost.rawResources += i.amount * (upEdge?.recipeMultiplier ?? 1);
+        node.myCost.rawResources += i.amount *
+            (node.recipe.operationalRate ?? 1) *
+            (upEdge?.recipeMultiplier ?? 1);
       }
-      node.myCost.resources += i.amount * (upEdge?.recipeMultiplier ?? 1);
+    }
+    if (upEdge != null) {
+      node.myCost.speed = node.recipe.output
+              .firstWhere((o) => o.name == upEdge!.connectingName)
+              .amount *
+          (node.recipe.operationalRate ?? 1);
     }
     return node.myCost;
+  }
+
+  double _calculateEfficiency(double recipeMultiplier) {
+    if (recipeMultiplier.round() == 0) {
+      return recipeMultiplier;
+    } else {
+      var v = recipeMultiplier.round() - recipeMultiplier;
+      //Weight recipes not requiring overclocking to be more efficient
+      if (v > 0) {
+        v /= 3;
+      }
+      return 1 - v.abs();
+    }
   }
 
   Map<String, double> _rawResources = {};
@@ -208,9 +265,37 @@ class _ProductionGraph {
     if (recalculate) {
       recalculate = false;
       _rawResources = _getRawResourceCost();
+      powerConsumption = _getPowerConsumption();
       oneTimeResources = _getOneTimeResourceCost();
+      graphEfficiency = _getGraphEfficiency();
     }
     return _rawResources;
+  }
+
+  double graphEfficiency = 1;
+
+  double _getGraphEfficiency({_RecipeNode? node}) {
+    node ??= nodes.first;
+    _RecipeEdge? upEdge;
+    try {
+      upEdge = edges.where((e) => e.incoming == node).single;
+      // ignore: empty_catches
+    } on StateError {}
+    double efficiency = upEdge?.recipeMultiplier ?? 1;
+    for (var i in node.recipe.input) {
+      for (var e in edges.where((e) =>
+          e.outgoing == node &&
+          e.connectingName == i.name &&
+          e.incoming.selected.value)) {
+        efficiency += _getGraphEfficiency(node: e.incoming);
+      }
+    }
+    if (upEdge == null) {
+      // Total efficiency of all nodes / Perfect efficiency of all children
+      // (sum(node_efficiency%)) / (number of nodes * 100% or * 1)
+      return efficiency / nodes.where((e) => e.selected.value).length;
+    }
+    return efficiency;
   }
 
   Map<String, double> _getRawResourceCost({_RecipeNode? node}) {
@@ -223,8 +308,10 @@ class _ProductionGraph {
     } on StateError {}
     for (var i in node.recipe.input) {
       Map<String, double>? subResources;
-      for (var e in edges
-          .where((e) => e.outgoing == node && e.connectingName == i.name)) {
+      for (var e in edges.where((e) =>
+          e.outgoing == node &&
+          e.connectingName == i.name &&
+          e.incoming.selected.value)) {
         subResources = _getRawResourceCost(node: e.incoming);
         for (var entry in subResources.entries) {
           resources[entry.key] = (resources[entry.key] ?? 0) + entry.value;
@@ -261,8 +348,10 @@ class _ProductionGraph {
     }
     for (var i in node.recipe.input) {
       Map<String, double>? subResources;
-      for (var e in edges
-          .where((e) => e.outgoing == node && e.connectingName == i.name)) {
+      for (var e in edges.where((e) =>
+          e.outgoing == node &&
+          e.connectingName == i.name &&
+          e.incoming.selected.value)) {
         subResources = _getOneTimeResourceCost(node: e.incoming);
         for (var entry in subResources.entries) {
           resources[entry.key] = (resources[entry.key] ?? 0) + entry.value;
@@ -270,6 +359,31 @@ class _ProductionGraph {
       }
     }
     return resources;
+  }
+
+  double powerConsumption = 0;
+
+  double _getPowerConsumption({_RecipeNode? node}) {
+    node ??= nodes.first;
+    double power = 0;
+    _RecipeEdge? upEdge;
+    try {
+      upEdge = edges.where((e) => e.incoming == node).single;
+      // ignore: empty_catches
+    } on StateError {}
+    int buildingsRequired = upEdge?.recipeMultiplier.ceil() ?? 1;
+    power =
+        game.buildingAssets[node.recipe.building!]!.cost * buildingsRequired;
+
+    for (var i in node.recipe.input) {
+      for (var e in edges.where((e) =>
+          e.outgoing == node &&
+          e.connectingName == i.name &&
+          e.incoming.selected.value)) {
+        power += _getPowerConsumption(node: e.incoming);
+      }
+    }
+    return power;
   }
 }
 
@@ -288,8 +402,10 @@ class _FactoryOverviewState extends State<FactoryOverview> {
   }
 
   void rebuildGraphs() {
-    productionGraphs =
-        widget.rootRecipes.map((r) => _ProductionGraph(game, r)).toList();
+    productionGraphs = widget.rootRecipes
+        .map((r) => _ProductionGraph(game, r,
+            rootName: widget.itemName.contains("/") ? null : widget.itemName))
+        .toList();
     selectForStrategy();
   }
 
@@ -301,18 +417,25 @@ class _FactoryOverviewState extends State<FactoryOverview> {
     switch (strategy) {
       case OptimizationStrategy.rawResources:
         graphToDisplay ??= productionGraphs.reduce((p, p2) =>
-            p.totalCost.rawResources <= p2.totalCost.rawResources ? p : p2);
+            p.optimizedData.rawResources <= p2.optimizedData.rawResources
+                ? p
+                : p2);
         selectList(graphToDisplay!.leastRawResourceNodes);
         break;
-      case OptimizationStrategy.resources:
+      case OptimizationStrategy.speed:
         graphToDisplay ??= productionGraphs.reduce((p, p2) =>
-            p.totalCost.resources <= p2.totalCost.resources ? p : p2);
-        selectList(graphToDisplay!.leastResourceNodes);
+            p.optimizedData.speed >= p2.optimizedData.speed ? p : p2);
+        selectList(graphToDisplay!.quickestNodes);
         break;
       case OptimizationStrategy.power:
-        graphToDisplay ??= productionGraphs.reduce(
-            (p, p2) => p.totalCost.power <= p2.totalCost.power ? p : p2);
+        graphToDisplay ??= productionGraphs.reduce((p, p2) =>
+            p.optimizedData.power <= p2.optimizedData.power ? p : p2);
         selectList(graphToDisplay!.leastPowerNodes);
+        break;
+      case OptimizationStrategy.efficiency:
+        graphToDisplay ??= productionGraphs.reduce((p, p2) =>
+            p.optimizedData.efficiency >= p2.optimizedData.efficiency ? p : p2);
+        selectList(graphToDisplay!.mostEfficientNodes);
         break;
       default:
     }
@@ -342,6 +465,31 @@ class _FactoryOverviewState extends State<FactoryOverview> {
       body: Stack(
         alignment: Alignment.center,
         children: [
+          Positioned.fill(
+            top: 200,
+            child: InteractiveViewer(
+                maxScale: 1.0,
+                minScale: 0.1,
+                clipBehavior: Clip.none,
+                constrained: false,
+                boundaryMargin: const EdgeInsets.all(16),
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(
+                    minWidth: MediaQuery.of(context).size.width,
+                    minHeight: MediaQuery.of(context).size.height - 200,
+                  ),
+                  child: Center(
+                    child: _FactoryDelegate(
+                      context,
+                      game,
+                      _markDirty,
+                      graphToDisplay!.nodes.first,
+                      subDelegates:
+                          _getSubdelegates(graphToDisplay!.nodes.first),
+                    ).boxy,
+                  ),
+                )),
+          ),
           Positioned.directional(
             textDirection: TextDirection.ltr,
             start: 10,
@@ -365,6 +513,8 @@ class _FactoryOverviewState extends State<FactoryOverview> {
             textDirection: TextDirection.ltr,
             top: 0,
             height: 60,
+            start: MediaQuery.of(context).size.width * 0.4,
+            end: 0,
             child: Text(
               "${widget.itemName} Factory",
               textAlign: TextAlign.center,
@@ -376,8 +526,8 @@ class _FactoryOverviewState extends State<FactoryOverview> {
           ),
           Positioned.directional(
             textDirection: TextDirection.ltr,
-            start: 250,
-            width: 400,
+            start: 150,
+            end: MediaQuery.of(context).size.width * 0.6,
             top: 20,
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -417,19 +567,36 @@ class _FactoryOverviewState extends State<FactoryOverview> {
                   ),
                 ),
                 ElevatedButton(
-                  onPressed: strategy == OptimizationStrategy.resources
+                  onPressed: strategy == OptimizationStrategy.speed
                       ? null
                       : () => setState(() {
-                            strategy = OptimizationStrategy.resources;
+                            strategy = OptimizationStrategy.speed;
                             selectForStrategy();
                           }),
-                  style: strategy == OptimizationStrategy.resources
+                  style: strategy == OptimizationStrategy.speed
                       ? ButtonStyle(
                           backgroundColor: MaterialStatePropertyAll(
                               Colors.lightBlue.shade200))
                       : null,
                   child: const Text(
-                    "Resources",
+                    "Speed",
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+                ElevatedButton(
+                  onPressed: strategy == OptimizationStrategy.efficiency
+                      ? null
+                      : () => setState(() {
+                            strategy = OptimizationStrategy.efficiency;
+                            selectForStrategy();
+                          }),
+                  style: strategy == OptimizationStrategy.efficiency
+                      ? ButtonStyle(
+                          backgroundColor: MaterialStatePropertyAll(
+                              Colors.lightBlue.shade200))
+                      : null,
+                  child: const Text(
+                    "Efficiency",
                     textAlign: TextAlign.center,
                   ),
                 ),
@@ -441,7 +608,7 @@ class _FactoryOverviewState extends State<FactoryOverview> {
             top: 60,
             height: 140,
             start: 100,
-            end: MediaQuery.of(context).size.width / 3,
+            end: MediaQuery.of(context).size.width * .6,
             child: Align(
               alignment: Alignment.bottomCenter,
               child: Card(
@@ -474,11 +641,34 @@ class _FactoryOverviewState extends State<FactoryOverview> {
                                 itemAmount(e.key, e.value),
                               Padding(
                                 padding:
-                                    const EdgeInsets.only(left: 24, right: 8),
-                                child: Text(
-                                  "${(graphToDisplay!.totalCost.power * 60).pretty} MW",
-                                  style:
-                                      Theme.of(context).textTheme.labelMedium,
+                                    const EdgeInsets.symmetric(horizontal: 24),
+                                child: DeltaText(
+                                  graphToDisplay!.powerConsumption * 60,
+                                  " MW",
+                                  Theme.of(context).textTheme.labelMedium!,
+                                ),
+                              ),
+                              Padding(
+                                padding: const EdgeInsets.only(right: 8),
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Padding(
+                                      padding: const EdgeInsets.only(bottom: 8),
+                                      child: Text(
+                                        "Efficiency",
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .labelMedium,
+                                      ),
+                                    ),
+                                    DeltaText(
+                                      graphToDisplay!.graphEfficiency * 100,
+                                      "%",
+                                      Theme.of(context).textTheme.labelMedium!,
+                                      inverted: true,
+                                    ),
+                                  ],
                                 ),
                               ),
                             ],
@@ -495,7 +685,7 @@ class _FactoryOverviewState extends State<FactoryOverview> {
             textDirection: TextDirection.ltr,
             top: 60,
             height: 140,
-            start: MediaQuery.of(context).size.width / 3 * 2,
+            start: MediaQuery.of(context).size.width * .4,
             end: 0,
             child: Align(
               alignment: Alignment.topCenter,
@@ -546,24 +736,6 @@ class _FactoryOverviewState extends State<FactoryOverview> {
               ),
             ),
           ),
-          Positioned.fill(
-            top: 200,
-            child: Center(
-              child: SingleChildScrollView(
-                reverse: true,
-                scrollDirection: Axis.horizontal,
-                child: Center(
-                  child: _FactoryDelegate(
-                    context,
-                    game,
-                    _markDirty,
-                    graphToDisplay!.nodes.first,
-                    subDelegates: _getSubdelegates(graphToDisplay!.nodes.first),
-                  ).boxy,
-                ),
-              ),
-            ),
-          ),
         ],
       ),
     );
@@ -588,6 +760,7 @@ class _FactoryOverviewState extends State<FactoryOverview> {
 
   Widget itemAmount(String name, double amount) {
     return SizedBox(
+      key: ValueKey(name),
       width: 56,
       height: 56,
       child: Stack(
@@ -601,10 +774,10 @@ class _FactoryOverviewState extends State<FactoryOverview> {
               child: Image.file(game.itemAssets[name]!),
             ),
           ),
-          Text(
-            amount.pretty,
-            style: Theme.of(context).textTheme.labelSmall,
-            textWidthBasis: TextWidthBasis.longestLine,
+          DeltaText(
+            amount,
+            "",
+            Theme.of(context).textTheme.labelSmall!,
           )
         ],
       ),
@@ -630,12 +803,36 @@ class _FactoryDelegate extends BoxyDelegate {
     this.upEdge,
     required this.subDelegates,
   }) {
+    var rawResources = node.recipe.input
+        .where((i) => !game.recipes.containsKey(i.name))
+        .toList();
+
     boxy = CustomBoxy(
+      key: UniqueKey(),
       delegate: this,
       children: [
         for (var d in subDelegates) BoxyId(id: d.node, child: d.boxy),
         BoxyId(id: node, child: factorySegment(context)),
-        for (var i in node.recipe.input)
+        BoxyId(
+          id: node.recipe.input,
+          child: Column(
+            mainAxisAlignment: rawResources.length <= 1
+                ? MainAxisAlignment.center
+                : MainAxisAlignment.spaceBetween,
+            children: [
+              for (var i in rawResources)
+                itemAmount(
+                  context,
+                  i,
+                  node.recipe.operationalRate ?? 1,
+                  upEdge?.recipeMultiplier ?? 1,
+                  raw: true,
+                ),
+            ],
+          ),
+        ),
+        for (var i
+            in node.recipe.input.where((i) => game.recipes.containsKey(i.name)))
           BoxyId(
             id: i.name,
             child: Container(
@@ -656,13 +853,26 @@ class _FactoryDelegate extends BoxyDelegate {
   }
 
   Widget itemAmount(
-      BuildContext context, ItemAmount i, double opRate, double multiplier) {
+    BuildContext context,
+    ItemAmount i,
+    double opRate,
+    double multiplier, {
+    bool raw = false,
+  }) {
     return SizedBox(
-      width: 112,
+      width: raw ? 146 : 112,
       height: 112,
       child: Stack(
-        alignment: Alignment.bottomRight,
+        alignment: Alignment.topLeft,
         children: [
+          if (raw)
+            Positioned(
+              width: 47,
+              height: 4,
+              top: 54,
+              right: 0,
+              child: Container(color: Colors.lightBlueAccent),
+            ),
           Padding(
             padding: const EdgeInsets.all(8),
             child: Tooltip(
@@ -677,53 +887,50 @@ class _FactoryDelegate extends BoxyDelegate {
               ),
             ),
           ),
-          Text(
-            "${(i.amount * opRate * multiplier).pretty} / min",
-            style: Theme.of(context).textTheme.labelMedium,
-            textWidthBasis: TextWidthBasis.longestLine,
+          Positioned(
+            bottom: 0,
+            right: raw ? 34 : 0,
+            child: Text(
+              "${(i.amount * opRate * multiplier).pretty} / min",
+              style: Theme.of(context).textTheme.labelMedium,
+            ),
           ),
           if (recipeChangeable(i))
-            Positioned(
-              top: 0,
-              left: 0,
-              width: 32,
-              height: 32,
-              child: IconButton(
-                padding: EdgeInsets.zero,
-                onPressed: game.recipes.containsKey(i.name) &&
+            IconButton(
+              padding: EdgeInsets.zero,
+              onPressed: game.recipes.containsKey(i.name) &&
+                      game.recipes[i.name]!.length > 1
+                  ? () {}
+                  : () async {
+                      game.newRecipe = ItemRecipe(
+                        [],
+                        [ItemAmount(i.name, 1)],
+                        0,
+                        null,
+                      );
+                      if (null !=
+                          await showDialog(
+                            context: context,
+                            builder: (context) => game.newRecipeDialog(
+                              context,
+                              i.name,
+                            ),
+                          )) {
+                        markDirty();
+                      }
+                    },
+              icon: Icon(
+                game.recipes.containsKey(i.name) &&
                         game.recipes[i.name]!.length > 1
-                    ? () {}
-                    : () async {
-                        game.newRecipe = ItemRecipe(
-                          [],
-                          [ItemAmount(i.name, 1)],
-                          0,
-                          null,
-                        );
-                        if (await showDialog(
-                              context: context,
-                              builder: (context) => game.newRecipeDialog(
-                                context,
-                                i.name,
-                              ),
-                            ) !=
-                            null) {
-                          markDirty();
-                        }
-                      },
-                icon: Icon(
-                  game.recipes.containsKey(i.name) &&
-                          game.recipes[i.name]!.length > 1
-                      ? Icons.change_circle
-                      : Icons.add_circle,
-                  size: 32,
-                  color: Colors.green,
-                ),
-                tooltip: game.recipes.containsKey(i.name) &&
-                        game.recipes[i.name]!.length > 1
-                    ? "Change recipe"
-                    : "Add recipe",
+                    ? Icons.change_circle
+                    : Icons.add_circle,
+                size: 32,
+                color: Colors.green,
               ),
+              tooltip: game.recipes.containsKey(i.name) &&
+                      game.recipes[i.name]!.length > 1
+                  ? "Change recipe"
+                  : "Add recipe",
             ),
         ],
       ),
@@ -746,14 +953,14 @@ class _FactoryDelegate extends BoxyDelegate {
         ),
     ];
 
-    outputHeight = 128 + 96 * outputs.length + 140 * (outputs.length - 1);
+    outputHeight = 128 + 112 * outputs.length + 128 * (outputs.length - 1);
 
     return Stack(
       alignment: Alignment.center,
       children: [
         Positioned(
-          top: 32,
-          bottom: 32,
+          top: 64,
+          bottom: 64,
           right: 0,
           width: 112,
           child: Column(
@@ -761,11 +968,10 @@ class _FactoryDelegate extends BoxyDelegate {
             children: outputs.expand((i) sync* {
               yield i;
               if (outputs.indexOf(i) != outputs.length - 1) {
-                yield Expanded(
-                  child: Container(
-                    width: 4,
-                    color: Colors.lightBlueAccent,
-                  ),
+                yield Container(
+                  height: 128,
+                  width: 4,
+                  color: Colors.lightBlueAccent,
                 );
               }
             }).toList(),
@@ -773,27 +979,10 @@ class _FactoryDelegate extends BoxyDelegate {
         ),
         Positioned(
           height: 4,
-          width: outputs.length % 2 == 0 ? 90 : 90,
-          right: outputs.length % 2 == 0 ? 46 : 100,
+          width: outputs.length % 2 == 0 ? 135 : 90,
+          right: outputs.length % 2 == 0 ? 56 : 100,
           child: Container(color: Colors.lightBlueAccent),
         ),
-        for (var i in node.recipe.input
-            .where((i) => !game.recipes.containsKey(i.name))
-            .toList()
-            .asMap()
-            .entries)
-          Positioned(
-            top: 56 + (i.key * 224), // 8 + 48 + 32 + 32 - 8
-            height: 112,
-            left: 0,
-            width: 112,
-            child: itemAmount(
-              context,
-              i.value,
-              node.recipe.operationalRate ?? 1,
-              upEdge?.recipeMultiplier ?? 1,
-            ),
-          ),
         Positioned(
           top: 0,
           left: 80,
@@ -895,8 +1084,8 @@ class _FactoryDelegate extends BoxyDelegate {
     );
   }
 
-  late final Offset segmentOffset;
-  late final Size segmentSize;
+  late Offset segmentOffset;
+  late Size segmentSize;
 
   @override
   Size layout() {
@@ -907,8 +1096,8 @@ class _FactoryDelegate extends BoxyDelegate {
     var recipeChildren = Map.fromEntries(
       subDelegates.map((d) => MapEntry(d, getChild(d.node))),
     );
-    for (var sub in recipeChildren.values) {
-      var size = sub.layout(constraints);
+    for (var sub in recipeChildren.entries) {
+      var size = sub.value.layout(constraints);
       inputHeight += size.height + 12;
       if (size.width - 96 > greatestWidth) {
         greatestWidth = size.width - 96;
@@ -921,30 +1110,26 @@ class _FactoryDelegate extends BoxyDelegate {
     double rawResourceHeight = 0;
     if (rawResources.isNotEmpty) {
       rawResourceHeight =
-          128 + rawResources.length * 96 + (rawResources.length - 1) * 140;
+          128 + rawResources.length * 112 + (rawResources.length - 1) * 128;
     }
     inputHeight += rawResourceHeight;
 
     Offset? firstLine;
     Offset lastLine = Offset.zero;
 
-    //Place lines for raw resources
-    for (var e in rawResources.asMap().entries) {
-      var rawLine = getChild(e.value.name);
-      rawLine.layout(constraints);
-      rawLine.position(Offset(greatestWidth + 102, 110 + (e.key * 224)));
-      firstLine ??= rawLine.offset;
-      lastLine = rawLine.offset;
+    //Estimate raw resource height
+    for (var index in rawResources.asMap().keys) {
+      var theoreticalOffset = Offset(greatestWidth + 100, 120 + (index * 240));
+      firstLine ??= theoreticalOffset;
+      lastLine = theoreticalOffset;
     }
-
-    final totalHeight = max(inputHeight, outputHeight);
 
     //Place recipe children and their lines
     double lastHeight = rawResourceHeight;
     for (var e in recipeChildren.entries) {
       e.value.position(Offset(
         greatestWidth + 114 - e.value.size.width,
-        lastHeight == 0 ? 2 : lastHeight + 6,
+        lastHeight == 0 ? 2 : lastHeight + 4,
       ));
 
       var inputPos = e.key.node.recipe.output
@@ -952,18 +1137,21 @@ class _FactoryDelegate extends BoxyDelegate {
 
       var childLine = getChild(e.key.upEdge!.connectingName);
       childLine.layout(constraints);
-      if (inputPos == 0) {
+      if (inputPos == 0 && e.key.node.recipe.output.length == 1) {
         childLine.position(Offset(
           greatestWidth + 102,
-          lastHeight + 64 + 48 + e.key.segmentOffset.dy,
+          lastHeight + e.key.segmentOffset.dy + e.key.segmentSize.height / 2,
         ));
       } else {
         childLine.position(Offset(
             greatestWidth + 102,
-            (lastHeight + 112 + e.key.segmentOffset.dy) +
-                (e.key.segmentSize.height - 128 - 96) /
-                    (e.key.node.recipe.output.length - 1) *
-                    inputPos));
+            (lastHeight + e.key.segmentOffset.dy) +
+                (e.key.segmentSize.height / 2 -
+                    (e.key.node.recipe.output.length * 112 +
+                            (e.key.node.recipe.output.length - 1) * 128) /
+                        2 +
+                    56) +
+                240 * inputPos));
       }
       firstLine ??= childLine.offset;
       lastLine = childLine.offset;
@@ -974,28 +1162,46 @@ class _FactoryDelegate extends BoxyDelegate {
       lastHeight += e.value.size.height + 12;
     }
 
+    final segmentHeight =
+        max(lastLine.dy - firstLine!.dy + 128 + 112, outputHeight);
+
     var tallLine = getChild(node.recipe);
     tallLine.layout(BoxConstraints.tightForFinite(
       width: 4,
-      height: lastLine == firstLine ? 0 : lastLine.dy - firstLine!.dy + 4,
+      height: lastLine == firstLine ? 0 : lastLine.dy - firstLine.dy + 4,
     ));
     tallLine.position(Offset(
       greatestWidth + 146,
-      firstLine!.dy,
+      firstLine.dy,
     ));
 
     //Place this recipe
     final segment = getChild(node);
     segment.layout(BoxConstraints.tightForFinite(
       width: 500,
-      height: tallLine.size.height + 128 + 96,
+      height: segmentHeight,
     ));
     segment.position(Offset(
       greatestWidth,
-      tallLine.offset.dy - 48 - 64 + 2,
+      tallLine.offset.dy - 56 - 64 + 2,
     ));
     segmentOffset = segment.offset;
     segmentSize = segment.size;
+
+    var totalHeight = max(inputHeight, segmentHeight);
+
+    //Place raw resource column
+    var rawCol = getChild(node.recipe.input);
+    rawCol.layout(BoxConstraints.tightForFinite(
+      width: 146,
+      height: totalHeight -
+          (inputHeight - rawResourceHeight) -
+          (rawResourceHeight > 0 ? 128 : 0),
+    ));
+    rawCol.position(Offset(
+      greatestWidth,
+      segmentOffset.dy + 64,
+    ));
 
     return Size(500 + greatestWidth, totalHeight);
   }

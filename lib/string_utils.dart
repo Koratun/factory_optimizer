@@ -7,8 +7,9 @@ extension StringUtil on String {
 }
 
 extension DoubleUtil on double {
-  String get pretty =>
-      toInt() == this ? toInt().toString() : roundToPlace(4).toString();
+  String get pretty => toInt() < this + 0.00001 && toInt() > this - 0.00001
+      ? toInt().toString()
+      : roundToPlace(4).toString();
 
   double roundToPlace(int p) =>
       (this * pow(10, p)).roundToDouble() / pow(10, p);

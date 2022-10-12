@@ -91,76 +91,135 @@ class GameModel extends ChangeNotifier {
     notifyListeners();
   }
 
+  TextEditingController itemSearch = TextEditingController();
+
+  void refreshSearch() => itemSearch.text = "";
+
   Iterable<Widget> itemList(
-    BuildContext context, {
+    BuildContext context,
+    void Function(void Function()) setState, {
     bool returnSelection = false,
   }) {
-    return itemAssets.entries.map(
-      (e) => Center(
-        child: SizedBox(
-          width: 400,
-          child: ListTile(
-            onTap: () => returnSelection
-                ? Navigator.pop(context, e.key)
-                : Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => ChangeNotifierProvider.value(
-                        value: this,
-                        child: AssetDisplay(
-                          isItem: true,
-                          assetName: e.key,
-                        ),
+    return [
+      newItemWidget(context, returnSelection: true),
+      Container(
+        // height: 48,
+        width: 400,
+        padding: const EdgeInsets.all(8),
+        color: Colors.grey.shade900,
+        child: TextField(
+          controller: itemSearch,
+          decoration: InputDecoration(
+              // filled: true,
+              // fillColor: Colors.lightBlue.shade900,
+              icon: const Icon(
+                Icons.search,
+                color: Colors.lightBlueAccent,
+                size: 48,
+              ),
+              hintText: "Search",
+              hintStyle: Theme.of(context)
+                  .textTheme
+                  .bodySmall!
+                  .copyWith(color: Colors.white)),
+          onChanged: (value) => setState(() {}),
+        ),
+      ),
+      Expanded(
+        child: ListView(
+          children: itemAssets.entries
+              .where((e) =>
+                  e.key.toLowerCase().contains(itemSearch.text.toLowerCase()))
+              .map(
+                (e) => Center(
+                  child: SizedBox(
+                    width: 400,
+                    child: ListTile(
+                      onTap: returnSelection
+                          ? () => Navigator.pop(context, e.key)
+                          : () async {
+                              refreshSearch();
+                              await Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) =>
+                                      ChangeNotifierProvider.value(
+                                    value: this,
+                                    child: AssetDisplay(
+                                      isItem: true,
+                                      assetName: e.key,
+                                    ),
+                                  ),
+                                ),
+                              );
+                              setState(() {});
+                            },
+                      hoverColor: Colors.grey.shade900,
+                      leading: Image.file(e.value),
+                      title: Text(
+                        e.key,
+                        textWidthBasis: TextWidthBasis.longestLine,
+                        style: Theme.of(context).textTheme.headlineSmall,
                       ),
                     ),
                   ),
-            hoverColor: Colors.grey.shade700,
-            leading: Image.file(e.value),
-            title: Text(
-              e.key,
-              textWidthBasis: TextWidthBasis.longestLine,
-              style: Theme.of(context).textTheme.headlineSmall,
-            ),
-          ),
+                ),
+              )
+              .toList(),
         ),
       ),
-    );
+    ];
   }
 
   Iterable<Widget> buildingList(
-    BuildContext context, {
+    BuildContext context,
+    void Function(void Function()) setState, {
     bool returnSelection = false,
   }) {
-    return buildingAssets.values.map(
-      (b) => Center(
-        child: SizedBox(
-          width: 400,
-          child: ListTile(
-            onTap: () => returnSelection
-                ? Navigator.pop(context, b.name)
-                : Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => ChangeNotifierProvider.value(
-                        value: this,
-                        child: AssetDisplay(
-                          isItem: false,
-                          assetName: b.name,
-                        ),
+    return [
+      newBuildingWidget(context, returnSelection: true),
+      Expanded(
+        child: ListView(
+          children: buildingAssets.values
+              .map(
+                (b) => Center(
+                  child: SizedBox(
+                    width: 400,
+                    child: ListTile(
+                      onTap: returnSelection
+                          ? () => Navigator.pop(context, b.name)
+                          : () async {
+                              refreshSearch();
+                              await Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) =>
+                                      ChangeNotifierProvider.value(
+                                    value: this,
+                                    child: AssetDisplay(
+                                      isItem: false,
+                                      assetName: b.name,
+                                    ),
+                                  ),
+                                ),
+                              );
+                              setState(() {});
+                            },
+                      hoverColor: Colors.grey.shade900,
+                      leading: Image.file(b.file),
+                      title: Text(
+                        b.name,
+                        textWidthBasis: TextWidthBasis.longestLine,
+                        style: Theme.of(context).textTheme.headlineSmall,
                       ),
                     ),
                   ),
-            hoverColor: Colors.grey.shade700,
-            leading: Image.file(b.file),
-            title: Text(
-              b.name,
-              textWidthBasis: TextWidthBasis.longestLine,
-              style: Theme.of(context).textTheme.headlineSmall,
-            ),
-          ),
+                ),
+              )
+              .toList(),
         ),
       ),
-    );
+    ];
   }
 
   final _formKey = GlobalKey<FormState>();
@@ -178,22 +237,21 @@ class GameModel extends ChangeNotifier {
           height: 1000,
           child: Padding(
             padding: const EdgeInsets.all(20),
-            child: ListView(children: [
-              Text(
-                item ? "Select an Item" : "Select a Building",
-                textAlign: TextAlign.center,
-                textWidthBasis: TextWidthBasis.longestLine,
-                style: Theme.of(context).textTheme.headlineMedium,
+            child: StatefulBuilder(
+              builder: (context, setState) => Column(
+                children: [
+                  Text(
+                    item ? "Select an Item" : "Select a Building",
+                    textAlign: TextAlign.center,
+                    textWidthBasis: TextWidthBasis.longestLine,
+                    style: Theme.of(context).textTheme.headlineMedium,
+                  ),
+                  ...(item
+                      ? itemList(context, setState, returnSelection: true)
+                      : buildingList(context, setState, returnSelection: true)),
+                ],
               ),
-              for (var a in item
-                  ? itemList(context, returnSelection: true)
-                  : buildingList(context, returnSelection: true))
-                a,
-              Center(
-                  child: item
-                      ? newItemWidget(context, returnSelection: true)
-                      : newBuildingWidget(context, returnSelection: true)),
-            ]),
+            ),
           ),
         ),
       ),
@@ -432,7 +490,7 @@ class GameModel extends ChangeNotifier {
         child: Container(
           color: Colors.grey.shade900,
           child: SizedBox(
-            width: 900,
+            width: 1050,
             height: 220,
             child: Container(
               padding: const EdgeInsets.all(16),
@@ -1114,66 +1172,79 @@ class _AssetDisplayState extends State<AssetDisplay> {
                         ? game.itemAssets[widget.assetName]!
                         : game.buildingAssets[widget.assetName]!.file),
                   ),
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      child: ListView(
-                        shrinkWrap: true,
-                        children: [
-                          Text(
-                            widget.isItem == null ? "Items" : "Recipes",
-                            textAlign: TextAlign.center,
-                            textWidthBasis: TextWidthBasis.longestLine,
-                            style: Theme.of(context).textTheme.headlineMedium,
-                          ),
-                          if (widget.isItem == null)
-                            for (var item in game.itemList(context)) item,
-                          if (widget.isItem != null &&
-                              game.recipes.containsKey(widget.assetName))
-                            for (var r in game.recipes[widget.assetName]!)
-                              Padding(
-                                padding: const EdgeInsets.all(4),
-                                child: recipe(r, game),
+                SizedBox(
+                  width: MediaQuery.of(context).size.width,
+                  height: MediaQuery.of(context).size.height -
+                      60 -
+                      (widget.isItem != null ? 64 : 0),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: Column(
+                          children: [
+                            Text(
+                              widget.isItem == null ? "Items" : "Recipes",
+                              textAlign: TextAlign.center,
+                              textWidthBasis: TextWidthBasis.longestLine,
+                              style: Theme.of(context).textTheme.headlineMedium,
+                            ),
+                            if (widget.isItem == null)
+                              ...game.itemList(context, setState),
+                            if (widget.isItem != null &&
+                                (widget.isItem! ||
+                                    // Buildings can only have one recipe
+                                    (!widget.isItem! &&
+                                        !game.recipes
+                                            .containsKey(widget.assetName))))
+                              newRecipeWidget(context),
+                            if (widget.isItem != null &&
+                                game.recipes.containsKey(widget.assetName))
+                              Expanded(
+                                child: ListView(
+                                  children: [
+                                    for (var r
+                                        in game.recipes[widget.assetName]!)
+                                      Padding(
+                                        padding: const EdgeInsets.all(4),
+                                        child: recipe(r, game),
+                                      ),
+                                  ],
+                                ),
                               ),
-                          if (widget.isItem != null &&
-                              (widget.isItem! ||
-                                  // Buildings can only have one recipe
-                                  (!widget.isItem! &&
-                                      !game.recipes
-                                          .containsKey(widget.assetName))))
-                            newRecipeWidget(context),
-                          if (widget.isItem == null)
-                            Center(child: game.newItemWidget(context)),
-                        ],
+                          ],
+                        ),
                       ),
-                    ),
-                    Expanded(
-                      child: ListView(
-                        shrinkWrap: true,
-                        children: [
-                          Text(
-                            widget.isItem == null ? "Buildings" : "Uses",
-                            textAlign: TextAlign.center,
-                            textWidthBasis: TextWidthBasis.longestLine,
-                            style: Theme.of(context).textTheme.headlineMedium,
-                          ),
-                          if (widget.isItem == null)
-                            for (var b in game.buildingList(context)) b,
-                          if (widget.isItem != null &&
-                              game.uses.containsKey(widget.assetName))
-                            for (var r in game.uses[widget.assetName]!)
-                              Padding(
-                                padding: const EdgeInsets.all(4),
-                                child: recipe(r, game),
+                      Expanded(
+                        child: Column(
+                          children: [
+                            Text(
+                              widget.isItem == null ? "Buildings" : "Uses",
+                              textAlign: TextAlign.center,
+                              textWidthBasis: TextWidthBasis.longestLine,
+                              style: Theme.of(context).textTheme.headlineMedium,
+                            ),
+                            if (widget.isItem == null)
+                              ...game.buildingList(context, setState),
+                            if (widget.isItem != null &&
+                                game.uses.containsKey(widget.assetName))
+                              Expanded(
+                                child: ListView(
+                                  children: [
+                                    for (var r in game.uses[widget.assetName]!)
+                                      Padding(
+                                        padding: const EdgeInsets.all(4),
+                                        child: recipe(r, game),
+                                      ),
+                                  ],
+                                ),
                               ),
-                          if (widget.isItem == null)
-                            Center(child: game.newBuildingWidget(context)),
-                        ],
+                          ],
+                        ),
                       ),
-                    ),
-                  ],
-                ),
+                    ],
+                  ),
+                )
               ],
             ),
           ),
@@ -1232,7 +1303,7 @@ class _AssetDisplayState extends State<AssetDisplay> {
 
   Widget recipe(ItemRecipe r, GameModel game) {
     return SizedBox(
-      width: 400,
+      width: MediaQuery.of(context).size.width / 2,
       height: 150,
       child: GestureDetector(
         onTap: r.building != null
@@ -1371,48 +1442,88 @@ class _AssetDisplayState extends State<AssetDisplay> {
   Widget newRecipeWidget(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.all(4),
-      child: Container(
-        color: Colors.grey.shade800,
-        child: SizedBox(
-          height: 150,
-          width: 400,
-          child: InkWell(
-            onTap: () {
-              game.newRecipe = ItemRecipe(
-                [],
-                [ItemAmount(widget.assetName!, 1)],
-                0,
-                null,
-              );
-              showDialog(
-                context: context,
-                builder: (context) => game.newRecipeDialog(
-                  context,
-                  widget.assetName!,
-                ),
-              );
-            },
-            hoverColor: Colors.grey.shade700,
-            child: Center(
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Padding(
-                    padding: EdgeInsets.only(right: 8),
-                    child: Icon(
-                      Icons.handyman,
-                      size: 64,
-                      color: Colors.white,
+      child: SizedBox(
+        height: 100,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            InkWell(
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => ChangeNotifierProvider.value(
+                    value: game,
+                    child: FactoryOverview(
+                      game.recipes[widget.assetName]!,
+                      itemName: widget.assetName!,
                     ),
                   ),
-                  Text(
-                    "Add recipe",
-                    style: Theme.of(context).textTheme.headlineSmall,
-                  ),
-                ],
+                ),
+              ),
+              hoverColor: Colors.grey.shade700,
+              child: Container(
+                padding: const EdgeInsets.all(16),
+                color: Colors.grey.shade800,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Padding(
+                      padding: EdgeInsets.only(right: 8),
+                      child: Icon(
+                        Icons.auto_graph,
+                        size: 64,
+                        color: Colors.white,
+                      ),
+                    ),
+                    Text(
+                      "View all recipes",
+                      style: Theme.of(context).textTheme.headlineSmall,
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
+            InkWell(
+              onTap: () {
+                game.newRecipe = ItemRecipe(
+                  [],
+                  [ItemAmount(widget.assetName!, 1)],
+                  0,
+                  null,
+                );
+                showDialog(
+                  context: context,
+                  builder: (context) => game.newRecipeDialog(
+                    context,
+                    widget.assetName!,
+                  ),
+                );
+              },
+              hoverColor: Colors.grey.shade700,
+              child: Container(
+                padding: const EdgeInsets.all(16),
+                color: Colors.grey.shade800,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Padding(
+                      padding: EdgeInsets.only(right: 8),
+                      child: Icon(
+                        Icons.handyman,
+                        size: 64,
+                        color: Colors.white,
+                      ),
+                    ),
+                    Text(
+                      "Add recipe",
+                      style: Theme.of(context).textTheme.headlineSmall,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
