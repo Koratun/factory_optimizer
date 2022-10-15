@@ -24,11 +24,92 @@ class FactoryOverview extends StatefulWidget {
 class _RecipeNode {
   final ItemRecipe recipe;
   final int depth;
+  final _ProductionGraph graph;
   ValueNotifier<bool> selected = ValueNotifier(false);
   late _OptimizerInfo myCost;
 
-  _RecipeNode(this.recipe, this.depth) {
+  _RecipeNode(this.recipe, this.depth, this.graph) {
     myCost = _OptimizerInfo.zero(this);
+  }
+
+  _RecipeEdge? get upEdge {
+    try {
+      return graph.edges.firstWhere((e) => e.incoming == this);
+    } on StateError {
+      return null;
+    }
+  }
+
+  _RecipeNode addChild(ItemRecipe r) {
+    var child = _RecipeNode(r, depth + 1, graph)
+      ..selected.addListener(() => graph.recalculate = true);
+    var edge = _RecipeEdge(child, this, upEdge);
+    graph.nodes.add(child);
+    graph.edges.add(edge);
+    graph.depth = depth;
+    graph.processRecipe(child, upstreamEdge: edge);
+    graph.depth = 0;
+    graph.resetGraphData();
+    return child;
+  }
+
+  List<_RecipeNode> get descendants {
+    var descs = graph.nodes.where((n) => n.upEdge?.outgoing == this).toList();
+    for (var n in graph.nodes.where((n) => n.upEdge?.outgoing == this)) {
+      descs.addAll(n.descendants);
+    }
+    return descs;
+  }
+
+  void select() {
+    var sibling = graph.nodes.firstWhere((n) =>
+        n.selected.value &&
+        n.upEdge?.outgoing == upEdge?.outgoing &&
+        n.upEdge?.connectingName == upEdge?.connectingName);
+    for (var n in sibling.descendants) {
+      n.selected.value = false;
+    }
+    sibling.selected.value = false;
+    selected.value = true;
+  }
+
+  void selectChildrenWithStrategy(OptimizationStrategy strat) {
+    for (var i in recipe.input) {
+      _RecipeNode? bestNode;
+      for (var e in graph.edges
+          .where((e) => e.outgoing == this && e.connectingName == i.name)) {
+        if (bestNode == null) {
+          bestNode = e.incoming;
+          continue;
+        }
+        switch (strat) {
+          case OptimizationStrategy.power:
+            if (e.incoming.myCost.power < bestNode.myCost.power) {
+              bestNode = e.incoming;
+            }
+            break;
+          case OptimizationStrategy.speed:
+            if (e.incoming.myCost.speed > bestNode.myCost.speed) {
+              bestNode = e.incoming;
+            }
+            break;
+          case OptimizationStrategy.rawResources:
+            if (e.incoming.myCost.rawResources < bestNode.myCost.rawResources) {
+              bestNode = e.incoming;
+            }
+            break;
+          case OptimizationStrategy.efficiency:
+            if (e.incoming.myCost.efficiency > bestNode.myCost.efficiency) {
+              bestNode = e.incoming;
+            }
+            break;
+        }
+      }
+      if (bestNode != null) {
+        bestNode.selectChildrenWithStrategy(strat);
+      }
+    }
+    selected.value = true;
   }
 }
 
@@ -71,7 +152,7 @@ class _OptimizerInfo {
   double rawResources;
   _RecipeNode rawResourceNode;
 
-  double coalescedEfficiency;
+  double aggregatedEfficiency;
   // Required for efficiency calculations
   int subNodes = 1;
   _RecipeNode efficientNode;
@@ -83,7 +164,7 @@ class _OptimizerInfo {
     this.speedNode,
     this.rawResources,
     this.rawResourceNode,
-    this.coalescedEfficiency,
+    this.aggregatedEfficiency,
     this.efficientNode,
   );
 
@@ -91,7 +172,7 @@ class _OptimizerInfo {
       : power = 0,
         speed = 0,
         rawResources = 0,
-        coalescedEfficiency = 1,
+        aggregatedEfficiency = 1,
         powerNode = self,
         speedNode = self,
         rawResourceNode = self,
@@ -102,11 +183,14 @@ class _OptimizerInfo {
     speed += other.speed;
     rawResources += other.rawResources;
     subNodes += other.subNodes;
-    coalescedEfficiency += other.coalescedEfficiency;
+    aggregatedEfficiency += other.aggregatedEfficiency;
     return this;
   }
 
-  double get efficiency => coalescedEfficiency / subNodes;
+  _OptimizerInfo copy() => _OptimizerInfo(power, powerNode, speed, speedNode,
+      rawResources, rawResourceNode, aggregatedEfficiency, efficientNode);
+
+  double get efficiency => aggregatedEfficiency / subNodes;
 
   void setBetter(_OptimizerInfo o) {
     if (o.power < power) {
@@ -139,7 +223,7 @@ class _OptimizerInfo {
   }
 
   void setEfficiency(_OptimizerInfo o) {
-    coalescedEfficiency = o.coalescedEfficiency;
+    aggregatedEfficiency = o.aggregatedEfficiency;
     subNodes = o.subNodes;
     efficientNode = o.efficientNode;
   }
@@ -147,8 +231,9 @@ class _OptimizerInfo {
 
 class _ProductionGraph {
   final GameModel game;
+  final String? rootName;
 
-  late final _OptimizerInfo optimizedData;
+  late _OptimizerInfo optimizedData;
   final List<_RecipeEdge> edges = [];
   final List<_RecipeNode> nodes = [];
   final List<_RecipeNode> quickestNodes = [];
@@ -156,27 +241,20 @@ class _ProductionGraph {
   final List<_RecipeNode> leastPowerNodes = [];
   final List<_RecipeNode> mostEfficientNodes = [];
 
+  final List<_RecipeNode> rootNodes = [];
+
   int depth = 0;
   int greatestDepth = 0;
 
   bool recalculate = true;
 
-  _ProductionGraph(this.game, rootRecipe, {String? rootName}) {
-    nodes.add(_RecipeNode(rootRecipe, 0));
-    quickestNodes.add(nodes.first);
-    leastRawResourceNodes.add(nodes.first);
-    leastPowerNodes.add(nodes.first);
-    mostEfficientNodes.add(nodes.first);
-    processRecipe(nodes.first);
-    optimizedData = scanGraph(nodes.first);
-    if (rootName != null) {
-      optimizedData.speed = nodes.first.recipe.output
-              .firstWhere((o) => o.name == rootName)
-              .amount *
-          (nodes.first.recipe.operationalRate ?? 1);
-    } else {
-      optimizedData.speed = nodes.first.recipe.rate;
+  _ProductionGraph(this.game, List<ItemRecipe> rootRecipes, {this.rootName}) {
+    nodes.addAll(rootRecipes.map((r) => _RecipeNode(r, 0, this)));
+    rootNodes.addAll(nodes);
+    for (var n in rootNodes) {
+      processRecipe(n);
     }
+    populateGraphData();
   }
 
   void processRecipe(_RecipeNode node, {_RecipeEdge? upstreamEdge}) {
@@ -185,7 +263,7 @@ class _ProductionGraph {
       var subRecipes = game.recipes[i.name];
       if (subRecipes != null) {
         var newNodes = subRecipes
-            .map((r) => _RecipeNode(r, depth)
+            .map((r) => _RecipeNode(r, depth, this)
               ..selected.addListener(() => recalculate = true))
             .toList();
         nodes.addAll(newNodes);
@@ -203,16 +281,147 @@ class _ProductionGraph {
     depth -= 1;
   }
 
+  _RecipeNode addRoot(ItemRecipe r) {
+    var child = _RecipeNode(r, 0, this)
+      ..selected.addListener(() => recalculate = true);
+    nodes.add(child);
+    rootNodes.add(child);
+    processRecipe(child);
+    resetGraphData();
+    return child;
+  }
+
+  void resetGraphData() {
+    for (var n in nodes) {
+      n.myCost = _OptimizerInfo.zero(n);
+    }
+    quickestNodes.clear();
+    leastRawResourceNodes.clear();
+    leastPowerNodes.clear();
+    mostEfficientNodes.clear();
+    populateGraphData();
+  }
+
+  void populateGraphData() {
+    for (var n in rootNodes) {
+      scanGraph(n);
+    }
+
+    optimizedData = rootNodes.first.myCost.copy();
+    if (rootNodes.length != 1) {
+      for (var n in rootNodes) {
+        optimizedData.setBetter(n.myCost);
+      }
+    }
+    _seedStrategyData(
+      optimizedData.rawResourceNode,
+      OptimizationStrategy.rawResources,
+    );
+    _seedStrategyData(
+      optimizedData.powerNode,
+      OptimizationStrategy.power,
+    );
+    _seedStrategyData(
+      optimizedData.speedNode,
+      OptimizationStrategy.speed,
+    );
+    _seedStrategyData(
+      optimizedData.efficientNode,
+      OptimizationStrategy.efficiency,
+    );
+  }
+
+  void _seedStrategyData(_RecipeNode node, OptimizationStrategy strat) {
+    switch (strat) {
+      case OptimizationStrategy.power:
+        leastPowerNodes.add(node);
+        for (var i in node.recipe.input) {
+          _RecipeNode? bestNode;
+          for (var e in edges
+              .where((e) => e.outgoing == node && e.connectingName == i.name)) {
+            if (bestNode == null) {
+              bestNode = e.incoming;
+              continue;
+            }
+            if (e.incoming.myCost.power < bestNode.myCost.power) {
+              bestNode = e.incoming;
+            }
+          }
+          if (bestNode != null) {
+            _seedStrategyData(bestNode, strat);
+          }
+        }
+        break;
+      case OptimizationStrategy.speed:
+        quickestNodes.add(node);
+        for (var i in node.recipe.input) {
+          _RecipeNode? bestNode;
+          for (var e in edges
+              .where((e) => e.outgoing == node && e.connectingName == i.name)) {
+            if (bestNode == null) {
+              bestNode = e.incoming;
+              continue;
+            }
+            if (e.incoming.myCost.speed > bestNode.myCost.speed) {
+              bestNode = e.incoming;
+            }
+          }
+          if (bestNode != null) {
+            _seedStrategyData(bestNode, strat);
+          }
+        }
+        break;
+      case OptimizationStrategy.rawResources:
+        leastRawResourceNodes.add(node);
+        for (var i in node.recipe.input) {
+          _RecipeNode? bestNode;
+          for (var e in edges
+              .where((e) => e.outgoing == node && e.connectingName == i.name)) {
+            if (bestNode == null) {
+              bestNode = e.incoming;
+              continue;
+            }
+            if (e.incoming.myCost.rawResources < bestNode.myCost.rawResources) {
+              bestNode = e.incoming;
+            }
+          }
+          if (bestNode != null) {
+            _seedStrategyData(bestNode, strat);
+          }
+        }
+        break;
+      case OptimizationStrategy.efficiency:
+        mostEfficientNodes.add(node);
+        for (var i in node.recipe.input) {
+          _RecipeNode? bestNode;
+          for (var e in edges
+              .where((e) => e.outgoing == node && e.connectingName == i.name)) {
+            if (bestNode == null) {
+              bestNode = e.incoming;
+              continue;
+            }
+            if (e.incoming.myCost.efficiency > bestNode.myCost.efficiency) {
+              bestNode = e.incoming;
+            }
+          }
+          if (bestNode != null) {
+            _seedStrategyData(bestNode, strat);
+          }
+        }
+        break;
+    }
+  }
+
   _OptimizerInfo scanGraph(_RecipeNode node) {
     _RecipeEdge? upEdge;
     try {
       upEdge = edges.where((e) => e.incoming == node).single;
-      node.myCost.coalescedEfficiency =
+      node.myCost.aggregatedEfficiency =
           _calculateEfficiency(upEdge.recipeMultiplier);
       // ignore: empty_catches
     } on StateError {}
     int buildingsRequired = upEdge?.recipeMultiplier.ceil() ?? 1;
-    node.myCost.power +=
+    node.myCost.power =
         game.buildingAssets[node.recipe.building!]!.cost * buildingsRequired;
     for (var i in node.recipe.input) {
       _OptimizerInfo? inputCost;
@@ -220,16 +429,12 @@ class _ProductionGraph {
           .where((e) => e.outgoing == node && e.connectingName == i.name)) {
         var cost = scanGraph(e.incoming);
         if (inputCost == null) {
-          inputCost = cost;
+          inputCost = cost.copy();
         } else {
           inputCost.setBetter(cost);
         }
       }
       if (inputCost != null) {
-        leastPowerNodes.add(inputCost.powerNode);
-        quickestNodes.add(inputCost.speedNode);
-        leastRawResourceNodes.add(inputCost.rawResourceNode);
-        mostEfficientNodes.add(inputCost.efficientNode);
         node.myCost += inputCost;
       } else {
         node.myCost.rawResources += i.amount *
@@ -237,12 +442,11 @@ class _ProductionGraph {
             (upEdge?.recipeMultiplier ?? 1);
       }
     }
-    if (upEdge != null) {
-      node.myCost.speed = node.recipe.output
-              .firstWhere((o) => o.name == upEdge!.connectingName)
-              .amount *
-          (node.recipe.operationalRate ?? 1);
-    }
+    node.myCost.speed = node.recipe.output
+            .firstWhere(
+                (o) => o.name == upEdge?.connectingName || o.name == rootName)
+            .amount *
+        (node.recipe.operationalRate ?? 1);
     return node.myCost;
   }
 
@@ -275,13 +479,14 @@ class _ProductionGraph {
   double graphEfficiency = 1;
 
   double _getGraphEfficiency({_RecipeNode? node}) {
-    node ??= nodes.first;
+    node ??= rootNodes.firstWhere((n) => n.selected.value);
     _RecipeEdge? upEdge;
     try {
       upEdge = edges.where((e) => e.incoming == node).single;
       // ignore: empty_catches
     } on StateError {}
-    double efficiency = upEdge?.recipeMultiplier ?? 1;
+    double efficiency =
+        upEdge == null ? 1 : _calculateEfficiency(upEdge.recipeMultiplier);
     for (var i in node.recipe.input) {
       for (var e in edges.where((e) =>
           e.outgoing == node &&
@@ -299,7 +504,7 @@ class _ProductionGraph {
   }
 
   Map<String, double> _getRawResourceCost({_RecipeNode? node}) {
-    node ??= nodes.first;
+    node ??= rootNodes.firstWhere((n) => n.selected.value);
     Map<String, double> resources = {};
     _RecipeEdge? upEdge;
     try {
@@ -332,7 +537,7 @@ class _ProductionGraph {
   Map<String, double> oneTimeResources = {};
 
   Map<String, double> _getOneTimeResourceCost({_RecipeNode? node}) {
-    node ??= nodes.first;
+    node ??= rootNodes.firstWhere((n) => n.selected.value);
     Map<String, double> resources = {};
     _RecipeEdge? upEdge;
     try {
@@ -364,7 +569,7 @@ class _ProductionGraph {
   double powerConsumption = 0;
 
   double _getPowerConsumption({_RecipeNode? node}) {
-    node ??= nodes.first;
+    node ??= rootNodes.firstWhere((n) => n.selected.value);
     double power = 0;
     _RecipeEdge? upEdge;
     try {
@@ -391,58 +596,37 @@ class _FactoryOverviewState extends State<FactoryOverview> {
   late final GameModel game;
 
   OptimizationStrategy strategy = OptimizationStrategy.rawResources;
-  late List<_ProductionGraph> productionGraphs;
-  _ProductionGraph? graphToDisplay;
+  late final _ProductionGraph graph;
 
   @override
   void initState() {
     super.initState();
     game = Provider.of<GameModel>(context, listen: false);
-    rebuildGraphs();
-  }
-
-  void rebuildGraphs() {
-    productionGraphs = widget.rootRecipes
-        .map((r) => _ProductionGraph(game, r,
-            rootName: widget.itemName.contains("/") ? null : widget.itemName))
-        .toList();
+    graph = _ProductionGraph(game, widget.rootRecipes,
+        rootName: widget.itemName.contains("/") ? null : widget.itemName);
     selectForStrategy();
   }
 
   void selectForStrategy() {
-    if (widget.selectedRecipe != null) {
-      graphToDisplay = productionGraphs
-          .firstWhere((p) => p.nodes.first.recipe == widget.selectedRecipe);
-    }
     switch (strategy) {
       case OptimizationStrategy.rawResources:
-        graphToDisplay ??= productionGraphs.reduce((p, p2) =>
-            p.optimizedData.rawResources <= p2.optimizedData.rawResources
-                ? p
-                : p2);
-        selectList(graphToDisplay!.leastRawResourceNodes);
+        selectList(graph.leastRawResourceNodes);
         break;
       case OptimizationStrategy.speed:
-        graphToDisplay ??= productionGraphs.reduce((p, p2) =>
-            p.optimizedData.speed >= p2.optimizedData.speed ? p : p2);
-        selectList(graphToDisplay!.quickestNodes);
+        selectList(graph.quickestNodes);
         break;
       case OptimizationStrategy.power:
-        graphToDisplay ??= productionGraphs.reduce((p, p2) =>
-            p.optimizedData.power <= p2.optimizedData.power ? p : p2);
-        selectList(graphToDisplay!.leastPowerNodes);
+        selectList(graph.leastPowerNodes);
         break;
       case OptimizationStrategy.efficiency:
-        graphToDisplay ??= productionGraphs.reduce((p, p2) =>
-            p.optimizedData.efficiency >= p2.optimizedData.efficiency ? p : p2);
-        selectList(graphToDisplay!.mostEfficientNodes);
+        selectList(graph.mostEfficientNodes);
         break;
       default:
     }
   }
 
   void selectList(List<_RecipeNode> selectedNodes) {
-    for (var n in graphToDisplay!.nodes) {
+    for (var n in graph.nodes) {
       if (selectedNodes.contains(n)) {
         n.selected.value = true;
       } else {
@@ -454,10 +638,6 @@ class _FactoryOverviewState extends State<FactoryOverview> {
   // Computation methods  /\
   //                      ||
   // Displaying methods   \/
-
-  Iterable<ItemRecipe> nodesAtDepth(int d) => graphToDisplay!.nodes
-      .where((e) => e.selected.value && e.depth == d)
-      .map((e) => e.recipe);
 
   @override
   Widget build(BuildContext context) {
@@ -482,10 +662,12 @@ class _FactoryOverviewState extends State<FactoryOverview> {
                     child: _FactoryDelegate(
                       context,
                       game,
+                      graph,
+                      strategy,
                       _markDirty,
-                      graphToDisplay!.nodes.first,
-                      subDelegates:
-                          _getSubdelegates(graphToDisplay!.nodes.first),
+                      graph.rootNodes.firstWhere((n) => n.selected.value),
+                      subDelegates: _getSubdelegates(
+                          graph.rootNodes.firstWhere((n) => n.selected.value)),
                     ).boxy,
                   ),
                 )),
@@ -636,14 +818,13 @@ class _FactoryOverviewState extends State<FactoryOverview> {
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              for (var e
-                                  in graphToDisplay!.rawResources.entries)
+                              for (var e in graph.rawResources.entries)
                                 itemAmount(e.key, e.value),
                               Padding(
                                 padding:
                                     const EdgeInsets.symmetric(horizontal: 24),
                                 child: DeltaText(
-                                  graphToDisplay!.powerConsumption * 60,
+                                  graph.powerConsumption * 60,
                                   " MW",
                                   Theme.of(context).textTheme.labelMedium!,
                                 ),
@@ -663,7 +844,7 @@ class _FactoryOverviewState extends State<FactoryOverview> {
                                       ),
                                     ),
                                     DeltaText(
-                                      graphToDisplay!.graphEfficiency * 100,
+                                      graph.graphEfficiency * 100,
                                       "%",
                                       Theme.of(context).textTheme.labelMedium!,
                                       inverted: true,
@@ -717,10 +898,9 @@ class _FactoryOverviewState extends State<FactoryOverview> {
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              for (var e
-                                  in graphToDisplay!.oneTimeResources.entries)
+                              for (var e in graph.oneTimeResources.entries)
                                 itemAmount(e.key, e.value),
-                              if (graphToDisplay!.oneTimeResources.isEmpty)
+                              if (graph.oneTimeResources.isEmpty)
                                 const Icon(
                                   Icons.warning,
                                   size: 56,
@@ -741,15 +921,17 @@ class _FactoryOverviewState extends State<FactoryOverview> {
     );
   }
 
-  void _markDirty() => setState(() => rebuildGraphs());
+  void _markDirty() => setState(() {});
 
   List<_FactoryDelegate> _getSubdelegates(_RecipeNode node) {
     return [
-      for (var e in graphToDisplay!.edges
+      for (var e in graph.edges
           .where((e) => e.outgoing == node && e.incoming.selected.value))
         _FactoryDelegate(
           context,
           game,
+          graph,
+          strategy,
           _markDirty,
           e.incoming,
           subDelegates: _getSubdelegates(e.incoming),
@@ -787,6 +969,8 @@ class _FactoryOverviewState extends State<FactoryOverview> {
 
 class _FactoryDelegate extends BoxyDelegate {
   final GameModel game;
+  final _ProductionGraph graph;
+  final OptimizationStrategy strat;
   final void Function() markDirty;
   final _RecipeNode node;
   final _RecipeEdge? upEdge;
@@ -798,6 +982,8 @@ class _FactoryDelegate extends BoxyDelegate {
   _FactoryDelegate(
     BuildContext context,
     this.game,
+    this.graph,
+    this.strat,
     this.markDirty,
     this.node, {
     this.upEdge,
@@ -852,6 +1038,194 @@ class _FactoryDelegate extends BoxyDelegate {
     );
   }
 
+  Widget _changeRecipeDialog(BuildContext context, String item) {
+    return Dialog(
+      alignment: Alignment.center,
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        color: Colors.grey.shade900,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            for (var r in game.recipes[item]!)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: _miniRecipe(context, r, selected: node.recipe == r),
+              ),
+            SizedBox(
+              width: 76 + 64 + 76,
+              height: 76,
+              child: InkWell(
+                mouseCursor: SystemMouseCursors.click,
+                onTap: () async {
+                  game.newRecipe = ItemRecipe(
+                    [],
+                    [ItemAmount(item, 1)],
+                    0,
+                    null,
+                  );
+                  bool success = null !=
+                      await showDialog(
+                        context: context,
+                        builder: (context) => game.newRecipeDialog(
+                          context,
+                          item,
+                        ),
+                      );
+                  if (success) {
+                    _RecipeNode child;
+                    if (node.upEdge == null) {
+                      child = graph.addRoot(game.newRecipe!);
+                    } else {
+                      child = node.upEdge!.outgoing.addChild(game.newRecipe!);
+                    }
+                    child.select();
+                    child.selectChildrenWithStrategy(strat);
+                    game.newRecipe = null;
+                    markDirty();
+                  }
+                },
+                child: Container(
+                  color: Colors.grey.shade800,
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    mainAxisSize: MainAxisSize.min,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Padding(
+                        padding: EdgeInsets.only(right: 8),
+                        child: Icon(
+                          Icons.handyman,
+                          size: 45,
+                          color: Colors.white,
+                        ),
+                      ),
+                      Text(
+                        "Add recipe",
+                        style: Theme.of(context).textTheme.headlineSmall,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _miniRecipe(
+    BuildContext context,
+    ItemRecipe r, {
+    bool selected = false,
+  }) {
+    return SizedBox(
+      width: 76 + 64 + 76,
+      height: 76,
+      child: InkWell(
+        mouseCursor: selected ? null : SystemMouseCursors.click,
+        onTap: selected
+            ? null
+            : () {
+                var sib = graph.nodes.firstWhere((n) =>
+                    n.recipe == r &&
+                    n.upEdge?.outgoing == node.upEdge?.outgoing &&
+                    n.upEdge?.connectingName == node.upEdge?.connectingName);
+                sib.select();
+                sib.selectChildrenWithStrategy(strat);
+                markDirty();
+                Navigator.pop(context);
+              },
+        child: Stack(
+          children: [
+            Positioned.fill(
+              child: Container(
+                color: Colors.grey.shade800,
+              ),
+            ),
+            for (var e in r.input.asMap().entries)
+              Positioned.fromRect(
+                rect: _miniItemPos(e.key, true),
+                child: _miniItemAmount(context, e.value),
+              ),
+            Positioned(
+              top: 0,
+              bottom: 0,
+              left: 76,
+              width: 64,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    "${game.buildingAssets[r.building]!.cost.pretty} MW",
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.labelSmall,
+                  ),
+                  Tooltip(
+                    message: r.building,
+                    child: Image.file(
+                      game.buildingAssets[r.building]!.file,
+                      width: 45,
+                      height: 45,
+                    ),
+                  ),
+                  Text(
+                    "${r.rate.roundToPlace(2).pretty}/min",
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.labelSmall,
+                  ),
+                ],
+              ),
+            ),
+            for (var e in r.output.asMap().entries)
+              Positioned.fromRect(
+                rect: _miniItemPos(e.key, false),
+                child: _miniItemAmount(context, e.value),
+              ),
+            if (selected)
+              Positioned.fill(
+                child: Container(color: Colors.black54),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Rect _miniItemPos(int index, bool input) {
+    var start = Offset(input ? 40 : 76 + 64 + 4, 40);
+    if (index % 2 == 1) {
+      start -= const Offset(0, 36);
+    }
+    // Not built for more than 4 ingredients
+    if (index ~/ 2 == 1) {
+      start += const Offset(36, 0) * (input ? -1 : 1);
+    }
+    return start & const Size(36, 36);
+  }
+
+  Widget _miniItemAmount(BuildContext context, ItemAmount i) {
+    return Stack(
+      alignment: Alignment.bottomRight,
+      children: [
+        Positioned.fill(
+          right: 4,
+          bottom: 4,
+          child: Tooltip(
+            message: i.name,
+            child: Image.file(game.itemAssets[i.name]!),
+          ),
+        ),
+        Text(
+          i.amount.toString(),
+          textWidthBasis: TextWidthBasis.longestLine,
+          style: Theme.of(context).textTheme.labelSmall,
+        ),
+      ],
+    );
+  }
+
   Widget itemAmount(
     BuildContext context,
     ItemAmount i,
@@ -900,7 +1274,13 @@ class _FactoryDelegate extends BoxyDelegate {
               padding: EdgeInsets.zero,
               onPressed: game.recipes.containsKey(i.name) &&
                       game.recipes[i.name]!.length > 1
-                  ? () {}
+                  ? () {
+                      showDialog(
+                        context: context,
+                        builder: (context) =>
+                            _changeRecipeDialog(context, i.name),
+                      );
+                    }
                   : () async {
                       game.newRecipe = ItemRecipe(
                         [],
@@ -908,14 +1288,16 @@ class _FactoryDelegate extends BoxyDelegate {
                         0,
                         null,
                       );
-                      if (null !=
+                      bool success = null !=
                           await showDialog(
                             context: context,
                             builder: (context) => game.newRecipeDialog(
                               context,
                               i.name,
                             ),
-                          )) {
+                          );
+                      if (success) {
+                        game.newRecipe = null;
                         markDirty();
                       }
                     },
@@ -1073,6 +1455,7 @@ class _FactoryDelegate extends BoxyDelegate {
               ),
             ) !=
             null) {
+          game.newRecipe = null;
           markDirty();
         }
       },
@@ -1107,6 +1490,7 @@ class _FactoryDelegate extends BoxyDelegate {
     var rawResources = node.recipe.input
         .where((e) => !game.recipes.containsKey(e.name))
         .toList();
+    assert(rawResources.isNotEmpty || subDelegates.isNotEmpty);
     double rawResourceHeight = 0;
     if (rawResources.isNotEmpty) {
       rawResourceHeight =

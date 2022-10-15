@@ -649,7 +649,6 @@ class GameModel extends ChangeNotifier {
                             .writeAsStringSync(
                                 json.encode(newRecipe!.toJson()));
                         _registerRecipe(newRecipe!);
-                        newRecipe = null;
                         recipeFields.clear();
                         Navigator.pop(context, true);
                       }
@@ -1449,22 +1448,29 @@ class _AssetDisplayState extends State<AssetDisplay> {
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             InkWell(
-              onTap: () => Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => ChangeNotifierProvider.value(
-                    value: game,
-                    child: FactoryOverview(
-                      game.recipes[widget.assetName]!,
-                      itemName: widget.assetName!,
-                    ),
-                  ),
-                ),
-              ),
+              mouseCursor: game.recipes.containsKey(widget.assetName!)
+                  ? SystemMouseCursors.click
+                  : null,
+              onTap: game.recipes.containsKey(widget.assetName!)
+                  ? () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => ChangeNotifierProvider.value(
+                            value: game,
+                            child: FactoryOverview(
+                              game.recipes[widget.assetName]!,
+                              itemName: widget.assetName!,
+                            ),
+                          ),
+                        ),
+                      )
+                  : null,
               hoverColor: Colors.grey.shade700,
               child: Container(
                 padding: const EdgeInsets.all(16),
-                color: Colors.grey.shade800,
+                color: game.recipes.containsKey(widget.assetName!)
+                    ? Colors.grey.shade800
+                    : Colors.grey.shade900,
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
@@ -1478,27 +1484,35 @@ class _AssetDisplayState extends State<AssetDisplay> {
                     ),
                     Text(
                       "View all recipes",
-                      style: Theme.of(context).textTheme.headlineSmall,
+                      style: Theme.of(context)
+                          .textTheme
+                          .headlineSmall!
+                          .copyWith(
+                              color: game.recipes.containsKey(widget.assetName!)
+                                  ? null
+                                  : Colors.grey.shade700),
                     ),
                   ],
                 ),
               ),
             ),
             InkWell(
-              onTap: () {
+              mouseCursor: SystemMouseCursors.click,
+              onTap: () async {
                 game.newRecipe = ItemRecipe(
                   [],
                   [ItemAmount(widget.assetName!, 1)],
                   0,
                   null,
                 );
-                showDialog(
+                await showDialog(
                   context: context,
                   builder: (context) => game.newRecipeDialog(
                     context,
                     widget.assetName!,
                   ),
                 );
+                game.newRecipe = null;
               },
               hoverColor: Colors.grey.shade700,
               child: Container(
