@@ -1,0 +1,1 @@
+{"input":[{"name":"Nitrogen Gas","amount":25.0,"byproduct":false},{"name":"Water","amount":5.0,"byproduct":false},{"name":"Rubber","amount":2.0,"byproduct":false},{"name":"Heat Sink","amount":2.0,"byproduct":false}],"output":[{"name":"Cooling System","amount":1.0,"byproduct":false}],"rate":6.0,"building":"Blender"}

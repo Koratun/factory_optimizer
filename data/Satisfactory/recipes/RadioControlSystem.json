@@ -1,0 +1,1 @@
+{"input":[{"name":"Rubber","amount":30.0,"byproduct":false},{"name":"Aluminum Casing","amount":60.0,"byproduct":false},{"name":"Circuit Board","amount":10.0,"byproduct":false},{"name":"Crystal Oscillator","amount":1.0,"byproduct":false}],"output":[{"name":"Radio Control Unit","amount":3.0,"byproduct":false}],"rate":4.5,"building":"Manufacturer"}

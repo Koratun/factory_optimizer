@@ -1,0 +1,1 @@
+{"input":[{"name":"Computer","amount":1.0,"byproduct":false},{"name":"Crystal Oscillator","amount":1.0,"byproduct":false},{"name":"Aluminum Casing","amount":32.0,"byproduct":false}],"output":[{"name":"Radio Control Unit","amount":2.0,"byproduct":false}],"rate":2.5,"building":"Manufacturer"}

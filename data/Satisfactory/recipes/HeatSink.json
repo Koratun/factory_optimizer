@@ -1,0 +1,1 @@
+{"input":[{"name":"Copper Sheet","amount":3.0,"byproduct":false},{"name":"Alclad Aluminum Sheet","amount":5.0,"byproduct":false}],"output":[{"name":"Heat Sink","amount":1.0,"byproduct":false}],"rate":7.5,"building":"Assembler"}

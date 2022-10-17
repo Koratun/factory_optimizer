@@ -1,0 +1,1 @@
+{"input":[{"name":"Water","amount":10,"byproduct":false},{"name":"Bauxite","amount":10,"byproduct":false}],"output":[{"name":"Alumina Solution","amount":12,"byproduct":false}],"rate":240.0,"building":"Refinery"}

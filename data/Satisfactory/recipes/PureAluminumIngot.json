@@ -1,0 +1,1 @@
+{"input":[{"name":"Aluminum Scrap","amount":2,"byproduct":false}],"output":[{"name":"Aluminum Ingot","amount":1,"byproduct":false}],"rate":30.0,"building":"Smelter"}

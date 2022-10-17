@@ -1,0 +1,1 @@
+{"input":[{"name":"Water","amount":5.0,"byproduct":false},{"name":"Sulfur","amount":5.0,"byproduct":false}],"output":[{"name":"Sulfuric Acid","amount":5.0,"byproduct":false}],"rate":50.0,"building":"Refinery"}

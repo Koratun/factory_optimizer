@@ -1,0 +1,33 @@
+{
+    "input": [
+        {
+            "name": "Aluminum Casing",
+            "amount": 1.0,
+            "byproduct": false
+        },
+        {
+            "name": "Alumina Solution",
+            "amount": 2.0,
+            "byproduct": false
+        },
+        {
+            "name": "Sulfuric Acid",
+            "amount": 2.5,
+            "byproduct": false
+        }
+    ],
+    "output": [
+        {
+            "name": "Battery",
+            "amount": 1.0,
+            "byproduct": false
+        },
+        {
+            "name": "Water",
+            "amount": 1.5,
+            "byproduct": true
+        }
+    ],
+    "rate": 20.0,
+    "building": "Blender"
+}

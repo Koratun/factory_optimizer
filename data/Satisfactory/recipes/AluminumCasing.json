@@ -1,0 +1,18 @@
+{
+    "input": [
+        {
+            "name": "Aluminum Ingot",
+            "amount": 3.0,
+            "byproduct": false
+        }
+    ],
+    "output": [
+        {
+            "name": "Aluminum Casing",
+            "amount": 2.0,
+            "byproduct": false
+        }
+    ],
+    "rate": 60.0,
+    "building": "Constructor"
+}

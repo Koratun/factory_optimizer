@@ -1,0 +1,1 @@
+{"input":[{"name":"Copper Ingot","amount":10.0,"byproduct":false},{"name":"Aluminum Ingot","amount":20.0,"byproduct":false}],"output":[{"name":"Aluminum Casing","amount":15.0,"byproduct":false}],"rate":112.5,"building":"Assembler"}
