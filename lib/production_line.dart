@@ -1,6 +1,7 @@
 import 'dart:math';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:boxy/boxy.dart';
 
@@ -27,6 +28,7 @@ class _RecipeNode {
   final _ProductionGraph graph;
   ValueNotifier<bool> selected = ValueNotifier(false);
   late _OptimizerInfo myCost;
+  final List<String> prebuilt = [];
 
   _RecipeNode(this.recipe, this.depth, this.graph) {
     myCost = _OptimizerInfo.zero(this);
@@ -40,10 +42,58 @@ class _RecipeNode {
     }
   }
 
+  void adjustRate(ItemAmount item, double targetRate) {
+    double old = 1;
+    if (upEdge != null) {
+      old = upEdge!.recipeMultiplier;
+    } else {
+      old = graph.rootMultiplier;
+    }
+    var currentRate = item.amount * (recipe.operationalRate ?? 1) * old;
+    var multiplier = targetRate / currentRate;
+    if (upEdge != null) {
+      upEdge!.recipeMultiplier *= multiplier;
+    } else {
+      graph.rootMultiplier *= multiplier;
+    }
+    propogateRate(old);
+  }
+
+  void propogateRate(
+    double oldMultiplier, {
+    _RecipeNode? entryNode,
+    bool? fromUpstream,
+  }) {
+    graph.recalculate = true;
+    double? old;
+    if (entryNode != null) {
+      if (fromUpstream!) {
+        upEdge!.recalculateMultiplier();
+      } else {
+        var change = entryNode.upEdge!.recipeMultiplier / oldMultiplier;
+        if (upEdge != null) {
+          old = upEdge!.recipeMultiplier;
+          upEdge!.recipeMultiplier *= change;
+        } else {
+          graph.rootMultiplier *= change;
+        }
+      }
+    }
+    for (var n in graph.nodes
+        .where((n) => n.upEdge?.outgoing == this && n != entryNode)) {
+      n.propogateRate(old ?? oldMultiplier,
+          entryNode: this, fromUpstream: true);
+    }
+    if (fromUpstream != true && upEdge != null) {
+      upEdge!.outgoing.propogateRate(old ?? oldMultiplier,
+          entryNode: this, fromUpstream: false);
+    }
+  }
+
   _RecipeNode addChild(ItemRecipe r) {
     var child = _RecipeNode(r, depth + 1, graph)
       ..selected.addListener(() => graph.recalculate = true);
-    var edge = _RecipeEdge(child, this, upEdge);
+    var edge = _RecipeEdge(child, this, upEdge, graph);
     graph.nodes.add(child);
     graph.edges.add(edge);
     graph.depth = depth;
@@ -61,11 +111,28 @@ class _RecipeNode {
     return descs;
   }
 
+  void setInputPrebuilt(String name) {
+    upEdge!.outgoing.prebuilt.add(name);
+    for (var n in descendants) {
+      n.selected.value = false;
+    }
+    selected.value = false;
+  }
+
+  void unsetInputPrebuilt(String name, OptimizationStrategy strat) {
+    prebuilt.remove(name);
+    selectChildrenWithStrategy(strat, selectItem: name);
+  }
+
   void select() {
     var sibling = graph.nodes.firstWhere((n) =>
         n.selected.value &&
         n.upEdge?.outgoing == upEdge?.outgoing &&
         n.upEdge?.connectingName == upEdge?.connectingName);
+    if (depth == 0) {
+      graph.rootMultiplier = 1;
+      propogateRate(1);
+    }
     for (var n in sibling.descendants) {
       n.selected.value = false;
     }
@@ -73,8 +140,16 @@ class _RecipeNode {
     selected.value = true;
   }
 
-  void selectChildrenWithStrategy(OptimizationStrategy strat) {
+  void selectChildrenWithStrategy(
+    OptimizationStrategy strat, {
+    String? selectItem,
+  }) {
+    selected.value = true;
     for (var i in recipe.input) {
+      if (prebuilt.contains(i.name) ||
+          (selectItem != null && i.name != selectItem)) {
+        continue;
+      }
       _RecipeNode? bestNode;
       for (var e in graph.edges
           .where((e) => e.outgoing == this && e.connectingName == i.name)) {
@@ -109,7 +184,6 @@ class _RecipeNode {
         bestNode.selectChildrenWithStrategy(strat);
       }
     }
-    selected.value = true;
   }
 }
 
@@ -117,10 +191,11 @@ class _RecipeEdge {
   final _RecipeNode incoming;
   final _RecipeNode outgoing;
   final _RecipeEdge? upstreamEdge;
+  final _ProductionGraph graph;
   late final String connectingName;
   double recipeMultiplier = 1;
 
-  _RecipeEdge(this.incoming, this.outgoing, this.upstreamEdge) {
+  _RecipeEdge(this.incoming, this.outgoing, this.upstreamEdge, this.graph) {
     for (var o in incoming.recipe.output) {
       for (var i in outgoing.recipe.input) {
         if (o.name == i.name) {
@@ -130,9 +205,25 @@ class _RecipeEdge {
           recipeMultiplier = (iOpRate * i.amount) / (oOpRate * o.amount);
           if (upstreamEdge != null) {
             recipeMultiplier *= upstreamEdge!.recipeMultiplier;
+          } else {
+            recipeMultiplier *= graph.rootMultiplier;
           }
         }
       }
+    }
+  }
+
+  // Can only be called when going downstream
+  void recalculateMultiplier() {
+    var i = outgoing.recipe.input.firstWhere((e) => e.name == connectingName);
+    var o = incoming.recipe.output.firstWhere((e) => e.name == connectingName);
+    double oOpRate = incoming.recipe.operationalRate ?? 1;
+    double iOpRate = outgoing.recipe.operationalRate ?? 1;
+    recipeMultiplier = (iOpRate * i.amount) / (oOpRate * o.amount);
+    if (upstreamEdge != null) {
+      recipeMultiplier *= upstreamEdge!.recipeMultiplier;
+    } else {
+      recipeMultiplier *= graph.rootMultiplier;
     }
   }
 }
@@ -242,6 +333,7 @@ class _ProductionGraph {
   final List<_RecipeNode> mostEfficientNodes = [];
 
   final List<_RecipeNode> rootNodes = [];
+  double rootMultiplier = 1;
 
   int depth = 0;
   int greatestDepth = 0;
@@ -267,8 +359,9 @@ class _ProductionGraph {
               ..selected.addListener(() => recalculate = true))
             .toList();
         nodes.addAll(newNodes);
-        var newEdges =
-            newNodes.map((n) => _RecipeEdge(n, node, upstreamEdge)).toList();
+        var newEdges = newNodes
+            .map((n) => _RecipeEdge(n, node, upstreamEdge, this))
+            .toList();
         edges.addAll(newEdges);
         for (var e in newEdges) {
           processRecipe(e.incoming, upstreamEdge: e);
@@ -313,6 +406,10 @@ class _ProductionGraph {
         optimizedData.setBetter(n.myCost);
       }
     }
+    seedStrategyData();
+  }
+
+  void seedStrategyData() {
     _seedStrategyData(
       optimizedData.rawResourceNode,
       OptimizationStrategy.rawResources,
@@ -336,6 +433,9 @@ class _ProductionGraph {
       case OptimizationStrategy.power:
         leastPowerNodes.add(node);
         for (var i in node.recipe.input) {
+          if (node.prebuilt.contains(i.name)) {
+            continue;
+          }
           _RecipeNode? bestNode;
           for (var e in edges
               .where((e) => e.outgoing == node && e.connectingName == i.name)) {
@@ -355,6 +455,9 @@ class _ProductionGraph {
       case OptimizationStrategy.speed:
         quickestNodes.add(node);
         for (var i in node.recipe.input) {
+          if (node.prebuilt.contains(i.name)) {
+            continue;
+          }
           _RecipeNode? bestNode;
           for (var e in edges
               .where((e) => e.outgoing == node && e.connectingName == i.name)) {
@@ -374,6 +477,9 @@ class _ProductionGraph {
       case OptimizationStrategy.rawResources:
         leastRawResourceNodes.add(node);
         for (var i in node.recipe.input) {
+          if (node.prebuilt.contains(i.name)) {
+            continue;
+          }
           _RecipeNode? bestNode;
           for (var e in edges
               .where((e) => e.outgoing == node && e.connectingName == i.name)) {
@@ -393,6 +499,9 @@ class _ProductionGraph {
       case OptimizationStrategy.efficiency:
         mostEfficientNodes.add(node);
         for (var i in node.recipe.input) {
+          if (node.prebuilt.contains(i.name)) {
+            continue;
+          }
           _RecipeNode? bestNode;
           for (var e in edges
               .where((e) => e.outgoing == node && e.connectingName == i.name)) {
@@ -416,11 +525,12 @@ class _ProductionGraph {
     _RecipeEdge? upEdge;
     try {
       upEdge = edges.where((e) => e.incoming == node).single;
-      node.myCost.aggregatedEfficiency =
-          _calculateEfficiency(upEdge.recipeMultiplier);
       // ignore: empty_catches
     } on StateError {}
-    int buildingsRequired = upEdge?.recipeMultiplier.ceil() ?? 1;
+    node.myCost.aggregatedEfficiency =
+        _calculateEfficiency(upEdge?.recipeMultiplier ?? rootMultiplier);
+    int buildingsRequired =
+        upEdge?.recipeMultiplier.ceil() ?? rootMultiplier.ceil();
     node.myCost.power =
         game.buildingAssets[node.recipe.building!]!.cost * buildingsRequired;
     for (var i in node.recipe.input) {
@@ -439,7 +549,7 @@ class _ProductionGraph {
       } else {
         node.myCost.rawResources += i.amount *
             (node.recipe.operationalRate ?? 1) *
-            (upEdge?.recipeMultiplier ?? 1);
+            (upEdge?.recipeMultiplier ?? rootMultiplier);
       }
     }
     node.myCost.speed = node.recipe.output
@@ -527,7 +637,7 @@ class _ProductionGraph {
             (node.selected.value
                 ? i.amount *
                     (node.recipe.operationalRate ?? 1) *
-                    (upEdge?.recipeMultiplier ?? 1)
+                    (upEdge?.recipeMultiplier ?? rootMultiplier)
                 : 0);
       }
     }
@@ -545,7 +655,8 @@ class _ProductionGraph {
       // ignore: empty_catches
     } on StateError {}
     if (game.recipes.containsKey(node.recipe.building)) {
-      int buildingsRequired = upEdge?.recipeMultiplier.ceil() ?? 1;
+      int buildingsRequired =
+          upEdge?.recipeMultiplier.ceil() ?? rootMultiplier.ceil();
       for (var i in game.recipes[node.recipe.building]![0].input) {
         resources[i.name] = (resources[i.name] ?? 0) +
             (node.selected.value ? i.amount * buildingsRequired : 0);
@@ -576,7 +687,8 @@ class _ProductionGraph {
       upEdge = edges.where((e) => e.incoming == node).single;
       // ignore: empty_catches
     } on StateError {}
-    int buildingsRequired = upEdge?.recipeMultiplier.ceil() ?? 1;
+    int buildingsRequired =
+        upEdge?.recipeMultiplier.ceil() ?? rootMultiplier.ceil();
     power =
         game.buildingAssets[node.recipe.building!]!.cost * buildingsRequired;
 
@@ -990,7 +1102,8 @@ class _FactoryDelegate extends BoxyDelegate {
     required this.subDelegates,
   }) {
     var rawResources = node.recipe.input
-        .where((i) => !game.recipes.containsKey(i.name))
+        .where((i) =>
+            !game.recipes.containsKey(i.name) || node.prebuilt.contains(i.name))
         .toList();
 
     boxy = CustomBoxy(
@@ -1011,14 +1124,15 @@ class _FactoryDelegate extends BoxyDelegate {
                   context,
                   i,
                   node.recipe.operationalRate ?? 1,
-                  upEdge?.recipeMultiplier ?? 1,
+                  upEdge?.recipeMultiplier ?? graph.rootMultiplier,
                   raw: true,
                 ),
             ],
           ),
         ),
-        for (var i
-            in node.recipe.input.where((i) => game.recipes.containsKey(i.name)))
+        for (var i in node.recipe.input.where((i) =>
+            game.recipes.containsKey(i.name) &&
+            !node.prebuilt.contains(i.name)))
           BoxyId(
             id: i.name,
             child: Container(
@@ -1254,65 +1368,120 @@ class _FactoryDelegate extends BoxyDelegate {
               verticalOffset: -70,
               child: Card(
                 elevation: 1,
-                color: game.recipes.containsKey(i.name)
-                    ? Colors.greenAccent.withOpacity(0.4)
-                    : Colors.brown.shade900.withOpacity(0.7),
+                color: node.prebuilt.contains(i.name)
+                    ? Colors.amber.withOpacity(0.5)
+                    : game.recipes.containsKey(i.name)
+                        ? Colors.greenAccent.withOpacity(0.4)
+                        : Colors.brown.shade900.withOpacity(0.7),
                 child: Image.file(game.itemAssets[i.name]!),
               ),
             ),
           ),
           Positioned(
-            bottom: 0,
+            bottom: 4,
+            left: 0,
             right: raw ? 34 : 0,
-            child: Text(
-              "${(i.amount * opRate * multiplier).pretty} / min",
+            child: TextField(
+              enabled: recipeChangeable(i),
+              scrollPadding: EdgeInsets.zero,
+              textAlign: TextAlign.right,
+              controller: TextEditingController(
+                  text: (i.amount * opRate * multiplier).pretty),
+              inputFormatters: [
+                FilteringTextInputFormatter.allow(RegExp(r"\d+\.?\d*"))
+              ],
+              decoration: InputDecoration(
+                isCollapsed: true,
+                filled: true,
+                focusedBorder: InputBorder.none,
+                focusColor: Colors.grey.shade700,
+                suffixText: "/ min",
+                suffixStyle: Theme.of(context).textTheme.labelMedium,
+              ),
               style: Theme.of(context).textTheme.labelMedium,
+              onSubmitted: (value) {
+                node.adjustRate(i, double.parse(value));
+                markDirty();
+              },
             ),
           ),
-          if (recipeChangeable(i))
-            IconButton(
-              padding: EdgeInsets.zero,
-              onPressed: game.recipes.containsKey(i.name) &&
-                      game.recipes[i.name]!.length > 1
-                  ? () {
-                      showDialog(
-                        context: context,
-                        builder: (context) =>
-                            _changeRecipeDialog(context, i.name),
-                      );
-                    }
-                  : () async {
-                      game.newRecipe = ItemRecipe(
-                        [],
-                        [ItemAmount(i.name, 1)],
-                        0,
-                        null,
-                      );
-                      bool success = null !=
-                          await showDialog(
-                            context: context,
-                            builder: (context) => game.newRecipeDialog(
-                              context,
-                              i.name,
-                            ),
-                          );
-                      if (success) {
-                        game.newRecipe = null;
-                        markDirty();
-                      }
-                    },
-              icon: Icon(
-                game.recipes.containsKey(i.name) &&
-                        game.recipes[i.name]!.length > 1
-                    ? Icons.change_circle
-                    : Icons.add_circle,
-                size: 32,
-                color: Colors.green,
+          if ((i.name == upEdge?.connectingName &&
+                  upEdge != null &&
+                  game.recipes.containsKey(i.name)) ||
+              node.prebuilt.contains(i.name))
+            Positioned(
+              top: 0,
+              right: raw ? 34 : 0,
+              width: 32,
+              height: 32,
+              child: IconButton(
+                icon: Icon(
+                  Icons.factory,
+                  size: 32,
+                  color: Colors.amber.shade700,
+                ),
+                tooltip: node.prebuilt.contains(i.name)
+                    ? "Unset prebuilt portion"
+                    : "Assume portion already built",
+                padding: EdgeInsets.zero,
+                onPressed: () {
+                  if (node.prebuilt.contains(i.name)) {
+                    node.unsetInputPrebuilt(i.name, strat);
+                  } else {
+                    node.setInputPrebuilt(i.name);
+                  }
+                  markDirty();
+                },
               ),
-              tooltip: game.recipes.containsKey(i.name) &&
-                      game.recipes[i.name]!.length > 1
-                  ? "Change recipe"
-                  : "Add recipe",
+            ),
+          if (recipeChangeable(i))
+            Positioned(
+              top: -4,
+              left: -4,
+              child: IconButton(
+                padding: EdgeInsets.zero,
+                onPressed: game.recipes.containsKey(i.name) &&
+                        game.recipes[i.name]!.length > 1
+                    ? () {
+                        showDialog(
+                          context: context,
+                          builder: (context) =>
+                              _changeRecipeDialog(context, i.name),
+                        );
+                      }
+                    : () async {
+                        game.newRecipe = ItemRecipe(
+                          [],
+                          [ItemAmount(i.name, 1)],
+                          0,
+                          null,
+                        );
+                        bool success = null !=
+                            await showDialog(
+                              context: context,
+                              builder: (context) => game.newRecipeDialog(
+                                context,
+                                i.name,
+                              ),
+                            );
+                        if (success) {
+                          game.newRecipe = null;
+                          markDirty();
+                        }
+                      },
+                icon: Icon(
+                  game.recipes.containsKey(i.name) &&
+                          game.recipes[i.name]!.length > 1
+                      ? Icons.change_circle
+                      : Icons.add_circle,
+                  size: 32,
+                  color: Colors.green,
+                ),
+                tooltip: game.recipes.containsKey(i.name) &&
+                        game.recipes[i.name]!.length > 1
+                    ? "Change recipe"
+                    : "Add recipe",
+              ),
             ),
         ],
       ),
@@ -1320,9 +1489,10 @@ class _FactoryDelegate extends BoxyDelegate {
   }
 
   bool recipeChangeable(ItemAmount i) =>
-      upEdge == null ||
-      i.name == upEdge!.connectingName ||
-      !game.recipes.containsKey(i.name);
+      ((upEdge == null && graph.rootNodes.length > 1) ||
+          i.name == upEdge?.connectingName ||
+          !game.recipes.containsKey(i.name)) &&
+      !node.prebuilt.contains(i.name);
 
   Widget factorySegment(BuildContext context) {
     var outputs = [
@@ -1331,7 +1501,7 @@ class _FactoryDelegate extends BoxyDelegate {
           context,
           o,
           node.recipe.operationalRate ?? 1,
-          upEdge?.recipeMultiplier ?? 1,
+          upEdge?.recipeMultiplier ?? graph.rootMultiplier,
         ),
     ];
 
@@ -1382,10 +1552,36 @@ class _FactoryDelegate extends BoxyDelegate {
         Positioned(
           top: 6,
           right: 80,
-          child: Text(
-            "${(upEdge?.recipeMultiplier ?? 1).pretty}x",
+          width: 100,
+          child: TextField(
+            scrollPadding: EdgeInsets.zero,
+            textAlign: TextAlign.right,
+            controller: TextEditingController(
+                text:
+                    (upEdge?.recipeMultiplier ?? graph.rootMultiplier).pretty),
+            inputFormatters: [
+              FilteringTextInputFormatter.allow(RegExp(r"\d+\.?\d*"))
+            ],
+            decoration: InputDecoration(
+              isCollapsed: true,
+              filled: true,
+              focusedBorder: InputBorder.none,
+              focusColor: Colors.grey.shade700,
+              suffixText: "x",
+              suffixStyle: Theme.of(context).textTheme.labelLarge,
+            ),
             style: Theme.of(context).textTheme.labelLarge,
-            textWidthBasis: TextWidthBasis.longestLine,
+            onSubmitted: (value) {
+              double old = 1;
+              if (upEdge != null) {
+                old = upEdge!.recipeMultiplier;
+                upEdge!.recipeMultiplier = double.parse(value);
+              } else {
+                graph.rootMultiplier = double.parse(value);
+              }
+              node.propogateRate(old);
+              markDirty();
+            },
           ),
         ),
         Positioned(
@@ -1423,7 +1619,7 @@ class _FactoryDelegate extends BoxyDelegate {
               ),
               Text(
                 "${game.buildingAssets[node.recipe.building!]!.cost.pretty} MW / building / sec\n"
-                "${(game.buildingAssets[node.recipe.building!]!.cost * (upEdge?.recipeMultiplier.ceil() ?? 1)).pretty} MW / sec",
+                "${(game.buildingAssets[node.recipe.building!]!.cost * (upEdge?.recipeMultiplier.ceil() ?? graph.rootMultiplier.ceil())).pretty} MW / sec",
                 style: Theme.of(context).textTheme.labelMedium,
                 textAlign: TextAlign.center,
                 textWidthBasis: TextWidthBasis.longestLine,
@@ -1488,7 +1684,8 @@ class _FactoryDelegate extends BoxyDelegate {
     }
 
     var rawResources = node.recipe.input
-        .where((e) => !game.recipes.containsKey(e.name))
+        .where((e) =>
+            !game.recipes.containsKey(e.name) || node.prebuilt.contains(e.name))
         .toList();
     assert(rawResources.isNotEmpty || subDelegates.isNotEmpty);
     double rawResourceHeight = 0;
