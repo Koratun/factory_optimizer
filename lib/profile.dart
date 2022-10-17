@@ -68,6 +68,9 @@ class GameModel extends ChangeNotifier {
 
   void _registerRecipe(ItemRecipe r) {
     for (var o in r.output) {
+      if (o.byproduct) {
+        continue;
+      }
       if (recipes.containsKey(o.name)) {
         recipes[o.name]!.add(r);
       } else {
@@ -325,7 +328,7 @@ class GameModel extends ChangeNotifier {
 
   final Map<String, TextEditingController> recipeFields = {};
 
-  Widget _cancelable(
+  Widget _floatingButtons(
     void Function(void Function()) setState,
     Widget child,
     String assetName,
@@ -339,14 +342,14 @@ class GameModel extends ChangeNotifier {
     return Stack(
       children: [
         child,
-        Positioned.directional(
-          end: 0,
+        Positioned(
+          right: 0,
           width: 16,
           top: 0,
           height: 16,
-          textDirection: TextDirection.ltr,
-          child: GestureDetector(
-            onTap: () {
+          child: IconButton(
+            padding: EdgeInsets.zero,
+            onPressed: () {
               recipeFields.remove(assetName);
               setState(() {
                 if (item) {
@@ -361,13 +364,13 @@ class GameModel extends ChangeNotifier {
                 }
               });
             },
-            child: const Icon(
+            icon: const Icon(
               Icons.cancel,
               size: 16,
               color: Colors.red,
             ),
           ),
-        )
+        ),
       ],
     );
   }
@@ -395,7 +398,7 @@ class GameModel extends ChangeNotifier {
                   child: SizedBox(
                     width: 48,
                     height: 48,
-                    child: _cancelable(
+                    child: _floatingButtons(
                       setState,
                       Image.file(itemAssets[assetName]!),
                       assetName,
@@ -441,7 +444,7 @@ class GameModel extends ChangeNotifier {
                   child: SizedBox(
                     width: 48,
                     height: 48,
-                    child: _cancelable(
+                    child: _floatingButtons(
                       setState,
                       Image.file(buildingAssets[assetName]!.file),
                       assetName,
@@ -618,32 +621,41 @@ class GameModel extends ChangeNotifier {
                         failed = true;
                       }
                       for (var inp in newRecipe!.input) {
-                        if ((int.tryParse(recipeFields[inp.name]!.text) ?? 0) <=
+                        if ((double.tryParse(recipeFields[inp.name]!.text) ??
+                                0) <=
                             0) {
-                          _errorAlert(context,
-                              "${inp.name}: rate must be a whole number above 0.");
+                          _errorAlert(
+                              context, "${inp.name}: rate must be above 0.");
                           failed = true;
                         }
                       }
                       for (var o in newRecipe!.output) {
-                        if ((int.tryParse(recipeFields[o.name]!.text) ?? 0) <=
+                        if ((double.tryParse(recipeFields[o.name]!.text) ??
+                                0) <=
                             0) {
-                          _errorAlert(context,
-                              "${o.name}: rate must be a whole number above 0.");
+                          _errorAlert(
+                              context, "${o.name}: rate must be above 0.");
                           failed = true;
                         }
                       }
                       if (!failed) {
                         for (var inp in newRecipe!.input) {
                           inp.amount =
-                              int.tryParse(recipeFields[inp.name]!.text)!;
+                              double.tryParse(recipeFields[inp.name]!.text)!;
                         }
                         for (var o in newRecipe!.output) {
-                          o.amount = int.tryParse(recipeFields[o.name]!.text)!;
+                          o.amount =
+                              double.tryParse(recipeFields[o.name]!.text)!;
                         }
                         if (newRecipe!.building != null) {
                           newRecipe!.rate = double.tryParse(
                               recipeFields[newRecipe!.building!]!.text)!;
+                        }
+                        var infinite = _checkForInfiniteRecursion(newRecipe!);
+                        if (infinite != null) {
+                          newRecipe!.output
+                              .firstWhere((e) => e.name == infinite)
+                              .byproduct = true;
                         }
                         File("recipes/${nameField.text}.json")
                             .writeAsStringSync(
@@ -662,6 +674,27 @@ class GameModel extends ChangeNotifier {
         ),
       ),
     );
+  }
+
+  String? _checkForInfiniteRecursion(
+    ItemRecipe recipe, {
+    List<String>? toCheck,
+  }) {
+    toCheck ??= recipe.output.map((e) => e.name).toList();
+    for (var i in recipe.input) {
+      if (toCheck.contains(i.name)) {
+        return i.name;
+      }
+      if (recipes.containsKey(i.name)) {
+        for (var r in recipes[i.name]!) {
+          var response = _checkForInfiniteRecursion(r, toCheck: toCheck);
+          if (response != null) {
+            return response;
+          }
+        }
+      }
+    }
+    return null;
   }
 
   void _errorAlert(BuildContext context, String content) {
@@ -1314,7 +1347,10 @@ class _AssetDisplayState extends State<AssetDisplay> {
                       child: FactoryOverview(
                         [r],
                         selectedRecipe: r,
-                        itemName: r.output.map((o) => o.name).join("/"),
+                        itemName: r.output
+                            .where((o) => !o.byproduct)
+                            .map((o) => o.name)
+                            .join("/"),
                       ),
                     ),
                   ),
@@ -1346,7 +1382,7 @@ class _AssetDisplayState extends State<AssetDisplay> {
                               ),
                             ),
                             Text(
-                              inp.amount.toString(),
+                              inp.amount.pretty,
                               textAlign: TextAlign.center,
                             ),
                           ],
@@ -1422,7 +1458,7 @@ class _AssetDisplayState extends State<AssetDisplay> {
                               ),
                             if (!game.buildingAssets.containsKey(o.name))
                               Text(
-                                o.amount.toString(),
+                                o.amount.pretty,
                                 textAlign: TextAlign.center,
                               ),
                           ],

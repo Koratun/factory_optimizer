@@ -28,12 +28,13 @@ class ItemRecipe {
 
 @JsonSerializable()
 class ItemAmount {
-  ItemAmount(this.name, this.amount);
+  ItemAmount(this.name, this.amount, {this.byproduct = false});
 
   String name;
   // name should match filenames used to save the images
-  int amount;
+  double amount;
   // amount is items consumed or produced per operation
+  bool byproduct;
 
   factory ItemAmount.fromJson(Map<String, dynamic> json) =>
       _$ItemAmountFromJson(json);

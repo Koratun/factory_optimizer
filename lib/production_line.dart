@@ -552,11 +552,14 @@ class _ProductionGraph {
             (upEdge?.recipeMultiplier ?? rootMultiplier);
       }
     }
-    node.myCost.speed = node.recipe.output
-            .firstWhere(
-                (o) => o.name == upEdge?.connectingName || o.name == rootName)
-            .amount *
-        (node.recipe.operationalRate ?? 1);
+    if (rootNodes.contains(node)) {
+      node.myCost.speed = node.recipe.rate;
+    } else {
+      node.myCost.speed = node.recipe.output
+              .firstWhere((o) => o.name == upEdge?.connectingName)
+              .amount *
+          (node.recipe.operationalRate ?? 1);
+    }
     return node.myCost;
   }
 
@@ -1382,7 +1385,7 @@ class _FactoryDelegate extends BoxyDelegate {
             left: 0,
             right: raw ? 34 : 0,
             child: TextField(
-              enabled: recipeChangeable(i),
+              enabled: recipeChangeable(i) || node.prebuilt.contains(i.name),
               scrollPadding: EdgeInsets.zero,
               textAlign: TextAlign.right,
               controller: TextEditingController(
@@ -1492,7 +1495,8 @@ class _FactoryDelegate extends BoxyDelegate {
       ((upEdge == null && graph.rootNodes.length > 1) ||
           i.name == upEdge?.connectingName ||
           !game.recipes.containsKey(i.name)) &&
-      !node.prebuilt.contains(i.name);
+      !node.prebuilt.contains(i.name) &&
+      !i.byproduct;
 
   Widget factorySegment(BuildContext context) {
     var outputs = [
@@ -1651,6 +1655,7 @@ class _FactoryDelegate extends BoxyDelegate {
               ),
             ) !=
             null) {
+          graph.recalculate = true;
           game.newRecipe = null;
           markDirty();
         }

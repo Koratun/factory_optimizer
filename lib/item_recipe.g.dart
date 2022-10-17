@@ -27,11 +27,13 @@ Map<String, dynamic> _$ItemRecipeToJson(ItemRecipe instance) =>
 
 ItemAmount _$ItemAmountFromJson(Map<String, dynamic> json) => ItemAmount(
       json['name'] as String,
-      json['amount'] as int,
+      (json['amount'] as num).toDouble(),
+      byproduct: json['byproduct'] as bool,
     );
 
 Map<String, dynamic> _$ItemAmountToJson(ItemAmount instance) =>
     <String, dynamic>{
       'name': instance.name,
       'amount': instance.amount,
+      'byproduct': instance.byproduct,
     };
