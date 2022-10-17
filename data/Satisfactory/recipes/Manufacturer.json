@@ -1,1 +1,1 @@
-{"input":[{"name":"Plastic","amount":50},{"name":"Cable","amount":50},{"name":"Heavy Modular Frame","amount":10},{"name":"Motor","amount":5}],"output":[{"name":"Manufacturer","amount":1}],"rate":0.0,"building":null}
+{"input": [{"name": "Plastic", "amount": 50, "byproduct": false}, {"name": "Cable", "amount": 50, "byproduct": false}, {"name": "Heavy Modular Frame", "amount": 10, "byproduct": false}, {"name": "Motor", "amount": 5, "byproduct": false}], "output": [{"name": "Manufacturer", "amount": 1, "byproduct": false}], "rate": 0.0, "building": null}

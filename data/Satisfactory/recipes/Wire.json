@@ -1,16 +1,1 @@
-{
-    "input": [
-        {
-            "name": "Copper Ingot",
-            "amount": 1
-        }
-    ],
-    "output": [
-        {
-            "name": "Wire",
-            "amount": 2
-        }
-    ],
-    "rate": 30,
-    "building": "Constructor"
-}
+{"input": [{"name": "Copper Ingot", "amount": 1, "byproduct": false}], "output": [{"name": "Wire", "amount": 2, "byproduct": false}], "rate": 30, "building": "Constructor"}

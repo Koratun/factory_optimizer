@@ -1,1 +1,1 @@
-{"input":[{"name":"Copper Ingot","amount":5},{"name":"Caterium Ingot","amount":1}],"output":[{"name":"Quickwire","amount":12}],"rate":90.0,"building":"Assembler"}
+{"input": [{"name": "Copper Ingot", "amount": 5, "byproduct": false}, {"name": "Caterium Ingot", "amount": 1, "byproduct": false}], "output": [{"name": "Quickwire", "amount": 12, "byproduct": false}], "rate": 90.0, "building": "Assembler"}

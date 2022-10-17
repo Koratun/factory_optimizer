@@ -1,1 +1,1 @@
-{"input":[{"name":"Water","amount":2},{"name":"Caterium Ore","amount":2}],"output":[{"name":"Caterium Ingot","amount":1}],"rate":12.0,"building":"Refinery"}
+{"input": [{"name": "Water", "amount": 2, "byproduct": false}, {"name": "Caterium Ore", "amount": 2, "byproduct": false}], "output": [{"name": "Caterium Ingot", "amount": 1, "byproduct": false}], "rate": 12.0, "building": "Refinery"}

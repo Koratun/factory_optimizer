@@ -1,1 +1,1 @@
-{"input":[{"name":"AI Limiter","amount":1},{"name":"Rubber","amount":7},{"name":"Quartz Crystal","amount":10}],"output":[{"name":"Crystal Oscillator","amount":1}],"rate":1.875,"building":"Manufacturer"}
+{"input": [{"name": "AI Limiter", "amount": 1, "byproduct": false}, {"name": "Rubber", "amount": 7, "byproduct": false}, {"name": "Quartz Crystal", "amount": 10, "byproduct": false}], "output": [{"name": "Crystal Oscillator", "amount": 1, "byproduct": false}], "rate": 1.875, "building": "Manufacturer"}

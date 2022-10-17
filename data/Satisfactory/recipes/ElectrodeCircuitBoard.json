@@ -1,1 +1,1 @@
-{"input":[{"name":"Petroleum Coke","amount":9},{"name":"Rubber","amount":6}],"output":[{"name":"Circuit Board","amount":1}],"rate":5.0,"building":"Assembler"}
+{"input": [{"name": "Petroleum Coke", "amount": 9, "byproduct": false}, {"name": "Rubber", "amount": 6, "byproduct": false}], "output": [{"name": "Circuit Board", "amount": 1, "byproduct": false}], "rate": 5.0, "building": "Assembler"}

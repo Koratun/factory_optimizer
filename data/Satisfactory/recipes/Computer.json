@@ -1,1 +1,1 @@
-{"input":[{"name":"Screw","amount":52},{"name":"Plastic","amount":18},{"name":"Cable","amount":9},{"name":"Circuit Board","amount":10}],"output":[{"name":"Computer","amount":1}],"rate":2.5,"building":"Manufacturer"}
+{"input": [{"name": "Screw", "amount": 52, "byproduct": false}, {"name": "Plastic", "amount": 18, "byproduct": false}, {"name": "Cable", "amount": 9, "byproduct": false}, {"name": "Circuit Board", "amount": 10, "byproduct": false}], "output": [{"name": "Computer", "amount": 1, "byproduct": false}], "rate": 2.5, "building": "Manufacturer"}

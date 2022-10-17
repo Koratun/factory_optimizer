@@ -1,1 +1,1 @@
-{"input":[{"name":"Quickwire","amount":20},{"name":"Copper Sheet","amount":5}],"output":[{"name":"AI Limiter","amount":1}],"rate":5.0,"building":"Assembler"}
+{"input": [{"name": "Quickwire", "amount": 20, "byproduct": false}, {"name": "Copper Sheet", "amount": 5, "byproduct": false}], "output": [{"name": "AI Limiter", "amount": 1, "byproduct": false}], "rate": 5.0, "building": "Assembler"}

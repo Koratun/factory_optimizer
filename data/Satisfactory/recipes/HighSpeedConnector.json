@@ -1,1 +1,1 @@
-{"input":[{"name":"Circuit Board","amount":1},{"name":"Cable","amount":10},{"name":"Quickwire","amount":56}],"output":[{"name":"High-Speed Connector","amount":1}],"rate":3.75,"building":"Manufacturer"}
+{"input": [{"name": "Circuit Board", "amount": 1, "byproduct": false}, {"name": "Cable", "amount": 10, "byproduct": false}, {"name": "Quickwire", "amount": 56, "byproduct": false}], "output": [{"name": "High-Speed Connector", "amount": 1, "byproduct": false}], "rate": 3.75, "building": "Manufacturer"}

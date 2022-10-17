@@ -1,1 +1,1 @@
-{"input":[{"name":"Quickwire","amount":30},{"name":"Plastic","amount":10}],"output":[{"name":"Circuit Board","amount":7}],"rate":8.75,"building":"Assembler"}
+{"input": [{"name": "Quickwire", "amount": 30, "byproduct": false}, {"name": "Plastic", "amount": 10, "byproduct": false}], "output": [{"name": "Circuit Board", "amount": 7, "byproduct": false}], "rate": 8.75, "building": "Assembler"}

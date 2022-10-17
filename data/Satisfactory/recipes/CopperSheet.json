@@ -1,1 +1,1 @@
-{"input":[{"name":"Copper Ingot","amount":2}],"output":[{"name":"Copper Sheet","amount":1}],"rate":10.0,"building":"Constructor"}
+{"input": [{"name": "Copper Ingot", "amount": 2, "byproduct": false}], "output": [{"name": "Copper Sheet", "amount": 1, "byproduct": false}], "rate": 10.0, "building": "Constructor"}

@@ -1,1 +1,1 @@
-{"input":[{"name":"Water","amount":4},{"name":"Polymer Resin","amount":4}],"output":[{"name":"Rubber","amount":2}],"rate":20.0,"building":"Refinery"}
+{"input": [{"name": "Water", "amount": 4, "byproduct": false}, {"name": "Polymer Resin", "amount": 4, "byproduct": false}], "output": [{"name": "Rubber", "amount": 2, "byproduct": false}], "rate": 20.0, "building": "Refinery"}

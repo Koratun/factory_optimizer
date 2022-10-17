@@ -1,1 +1,1 @@
-{"input":[{"name":"Plastic","amount":4},{"name":"Copper Sheet","amount":2}],"output":[{"name":"Circuit Board","amount":1}],"rate":7.5,"building":"Assembler"}
+{"input": [{"name": "Plastic", "amount": 4, "byproduct": false}, {"name": "Copper Sheet", "amount": 2, "byproduct": false}], "output": [{"name": "Circuit Board", "amount": 1, "byproduct": false}], "rate": 7.5, "building": "Assembler"}

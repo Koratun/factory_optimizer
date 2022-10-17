@@ -1,1 +1,1 @@
-{"input":[{"name":"Crude Oil","amount":3}],"output":[{"name":"Rubber","amount":2},{"name":"Heavy Oil Residue","amount":2}],"rate":20.0,"building":"Refinery"}
+{"input": [{"name": "Crude Oil", "amount": 3, "byproduct": false}], "output": [{"name": "Rubber", "amount": 2, "byproduct": false}, {"name": "Heavy Oil Residue", "amount": 2, "byproduct": false}], "rate": 20.0, "building": "Refinery"}

@@ -1,1 +1,1 @@
-{"input":[{"name":"Wire","amount":2}],"output":[{"name":"Cable","amount":1}],"rate":30.0,"building":"Constructor"}
+{"input": [{"name": "Wire", "amount": 2, "byproduct": false}], "output": [{"name": "Cable", "amount": 1, "byproduct": false}], "rate": 30.0, "building": "Constructor"}

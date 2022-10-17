@@ -1,1 +1,1 @@
-{"input":[{"name":"Wire","amount":12},{"name":"Plastic","amount":8},{"name":"Alclad Aluminum Sheet","amount":7},{"name":"Sulfur","amount":6}],"output":[{"name":"Battery","amount":4}],"rate":30.0,"building":"Manufacturer"}
+{"input": [{"name": "Wire", "amount": 12, "byproduct": false}, {"name": "Plastic", "amount": 8, "byproduct": false}, {"name": "Alclad Aluminum Sheet", "amount": 7, "byproduct": false}, {"name": "Sulfur", "amount": 6, "byproduct": false}], "output": [{"name": "Battery", "amount": 4, "byproduct": false}], "rate": 30.0, "building": "Manufacturer"}

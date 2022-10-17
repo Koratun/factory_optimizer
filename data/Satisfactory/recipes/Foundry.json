@@ -1,1 +1,1 @@
-{"input":[{"name":"Concrete","amount":20},{"name":"Rotor","amount":10},{"name":"Modular Frame","amount":10}],"output":[{"name":"Foundry","amount":1}],"rate":0.0,"building":null}
+{"input": [{"name": "Concrete", "amount": 20, "byproduct": false}, {"name": "Rotor", "amount": 10, "byproduct": false}, {"name": "Modular Frame", "amount": 10, "byproduct": false}], "output": [{"name": "Foundry", "amount": 1, "byproduct": false}], "rate": 0.0, "building": null}

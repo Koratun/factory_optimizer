@@ -1,1 +1,1 @@
-{"input":[{"name":"Reinforced Iron Plate","amount":2},{"name":"Cable","amount":8}],"output":[{"name":"Constructor","amount":1}],"rate":0.0,"building":null}
+{"input": [{"name": "Reinforced Iron Plate", "amount": 2, "byproduct": false}, {"name": "Cable", "amount": 8, "byproduct": false}], "output": [{"name": "Constructor", "amount": 1, "byproduct": false}], "rate": 0.0, "building": null}

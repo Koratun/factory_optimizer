@@ -1,1 +1,1 @@
-{"input":[{"name":"Copper Ingot","amount":1},{"name":"Aluminum Ingot","amount":3}],"output":[{"name":"Alclad Aluminum Sheet","amount":3}],"rate":30.0,"building":"Assembler"}
+{"input": [{"name": "Copper Ingot", "amount": 1, "byproduct": false}, {"name": "Aluminum Ingot", "amount": 3, "byproduct": false}], "output": [{"name": "Alclad Aluminum Sheet", "amount": 3, "byproduct": false}], "rate": 30.0, "building": "Assembler"}

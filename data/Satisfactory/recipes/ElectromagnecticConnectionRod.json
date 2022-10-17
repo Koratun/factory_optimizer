@@ -1,1 +1,1 @@
-{"input":[{"name":"High-Speed Connector","amount":1},{"name":"Stator","amount":2}],"output":[{"name":"Electromagnetic Control Rod","amount":2}],"rate":8.0,"building":"Assembler"}
+{"input": [{"name": "High-Speed Connector", "amount": 1, "byproduct": false}, {"name": "Stator", "amount": 2, "byproduct": false}], "output": [{"name": "Electromagnetic Control Rod", "amount": 2, "byproduct": false}], "rate": 8.0, "building": "Assembler"}

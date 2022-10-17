@@ -1,1 +1,1 @@
-{"input":[{"name":"Heavy Oil Residue","amount":4}],"output":[{"name":"Petroleum Coke","amount":12}],"rate":120.0,"building":"Refinery"}
+{"input": [{"name": "Heavy Oil Residue", "amount": 4, "byproduct": false}], "output": [{"name": "Petroleum Coke", "amount": 12, "byproduct": false}], "rate": 120.0, "building": "Refinery"}

@@ -1,1 +1,1 @@
-{"input":[{"name":"Silica","amount":5},{"name":"Aluminum Scrap","amount":6}],"output":[{"name":"Aluminum Ingot","amount":4}],"rate":60.0,"building":"Foundry"}
+{"input": [{"name": "Silica", "amount": 5, "byproduct": false}, {"name": "Aluminum Scrap", "amount": 6, "byproduct": false}], "output": [{"name": "Aluminum Ingot", "amount": 4, "byproduct": false}], "rate": 60.0, "building": "Foundry"}

@@ -1,1 +1,1 @@
-{"input":[{"name":"Steel Ingot","amount":4}],"output":[{"name":"Steel Beam","amount":1}],"rate":15.0,"building":"Constructor"}
+{"input": [{"name": "Steel Ingot", "amount": 4, "byproduct": false}], "output": [{"name": "Steel Beam", "amount": 1, "byproduct": false}], "rate": 15.0, "building": "Constructor"}

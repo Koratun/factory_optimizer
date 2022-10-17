@@ -1,1 +1,1 @@
-{"input":[{"name":"Raw Quartz","amount":5}],"output":[{"name":"Quartz Crystal","amount":3}],"rate":22.5,"building":"Constructor"}
+{"input": [{"name": "Raw Quartz", "amount": 5, "byproduct": false}], "output": [{"name": "Quartz Crystal", "amount": 3, "byproduct": false}], "rate": 22.5, "building": "Constructor"}

@@ -1,1 +1,1 @@
-{"input":[{"name":"Water","amount":5},{"name":"Raw Quartz","amount":9}],"output":[{"name":"Quartz Crystal","amount":7}],"rate":52.5,"building":"Refinery"}
+{"input": [{"name": "Water", "amount": 5, "byproduct": false}, {"name": "Raw Quartz", "amount": 9, "byproduct": false}], "output": [{"name": "Quartz Crystal", "amount": 7, "byproduct": false}], "rate": 52.5, "building": "Refinery"}
