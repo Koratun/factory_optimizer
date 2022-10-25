@@ -8,6 +8,7 @@ import 'package:mime/mime.dart';
 import 'package:provider/provider.dart';
 
 import 'string_utils.dart';
+import 'game_model.dart';
 import 'profile.dart';
 
 late final String rootDir;
@@ -103,6 +104,7 @@ class _MainAppState extends State<MainApp> {
                                   GameModel(f.path.basename.trimExtension, f),
                               child: const AssetDisplay(),
                             ),
+                            settings: const RouteSettings(name: "home"),
                           ),
                         ),
                       ),

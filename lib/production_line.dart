@@ -5,7 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:boxy/boxy.dart';
 
-import 'profile.dart';
+import 'game_model.dart';
 import 'item_recipe.dart';
 import 'string_utils.dart';
 import 'delta_text.dart';
@@ -793,7 +793,12 @@ class _FactoryOverviewState extends State<FactoryOverview> {
             width: 64,
             top: 10,
             height: 64,
-            child: Image.file(game.gameIcon),
+            child: IconButton(
+              padding: EdgeInsets.zero,
+              onPressed: () => Navigator.popUntil(
+                  context, (route) => route.settings.name == "home"),
+              icon: Image.file(game.gameIcon),
+            ),
           ),
           Positioned.directional(
             textDirection: TextDirection.ltr,
