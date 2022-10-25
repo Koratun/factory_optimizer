@@ -1385,7 +1385,9 @@ class _FactoryDelegate extends BoxyDelegate {
             left: 0,
             right: raw ? 34 : 0,
             child: TextField(
-              enabled: recipeChangeable(i) || node.prebuilt.contains(i.name),
+              enabled: graph.rootNodes.contains(node) ||
+                  node.prebuilt.contains(i.name) ||
+                  recipeChangeable(i),
               scrollPadding: EdgeInsets.zero,
               textAlign: TextAlign.right,
               controller: TextEditingController(
