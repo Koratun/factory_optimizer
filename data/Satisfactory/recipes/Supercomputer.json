@@ -1,0 +1,1 @@
+{"input":[{"name":"Plastic","amount":28.0,"byproduct":false},{"name":"High-Speed Connector","amount":3.0,"byproduct":false},{"name":"AI Limiter","amount":2.0,"byproduct":false},{"name":"Computer","amount":2.0,"byproduct":false}],"output":[{"name":"Supercomputer","amount":1.0,"byproduct":false}],"rate":1.875,"building":"Manufacturer"}

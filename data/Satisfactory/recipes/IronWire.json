@@ -1,0 +1,1 @@
+{"input":[{"name":"Iron Ingot","amount":5.0,"byproduct":false}],"output":[{"name":"Wire","amount":9.0,"byproduct":false}],"rate":22.5,"building":"Constructor"}

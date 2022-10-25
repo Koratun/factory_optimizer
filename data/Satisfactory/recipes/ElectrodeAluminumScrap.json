@@ -1,0 +1,1 @@
+{"input":[{"name":"Petroleum Coke","amount":4.0,"byproduct":false},{"name":"Alumina Solution","amount":12.0,"byproduct":false}],"output":[{"name":"Aluminum Scrap","amount":20.0,"byproduct":false},{"name":"Water","amount":7.0,"byproduct":true}],"rate":300.0,"building":"Refinery"}

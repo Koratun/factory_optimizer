@@ -810,7 +810,7 @@ class _FactoryOverviewState extends State<FactoryOverview> {
             textDirection: TextDirection.ltr,
             top: 0,
             height: 60,
-            start: MediaQuery.of(context).size.width * 0.4,
+            start: MediaQuery.of(context).size.width * 0.5,
             end: 0,
             child: Text(
               "${widget.itemName} Factory",
@@ -823,11 +823,11 @@ class _FactoryOverviewState extends State<FactoryOverview> {
           ),
           Positioned.directional(
             textDirection: TextDirection.ltr,
-            start: 150,
-            end: MediaQuery.of(context).size.width * 0.6,
+            start: 60,
+            end: MediaQuery.of(context).size.width * 0.5,
             top: 20,
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
                 ElevatedButton(
                   onPressed: strategy == OptimizationStrategy.rawResources
@@ -905,7 +905,7 @@ class _FactoryOverviewState extends State<FactoryOverview> {
             top: 60,
             height: 140,
             start: 100,
-            end: MediaQuery.of(context).size.width * .6,
+            end: MediaQuery.of(context).size.width * .5,
             child: Align(
               alignment: Alignment.bottomCenter,
               child: Card(
@@ -981,7 +981,7 @@ class _FactoryOverviewState extends State<FactoryOverview> {
             textDirection: TextDirection.ltr,
             top: 60,
             height: 140,
-            start: MediaQuery.of(context).size.width * .4,
+            start: MediaQuery.of(context).size.width * .5,
             end: 0,
             child: Align(
               alignment: Alignment.topCenter,

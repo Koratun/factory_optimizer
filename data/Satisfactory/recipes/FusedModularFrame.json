@@ -1,0 +1,1 @@
+{"input":[{"name":"Nitrogen Gas","amount":25.0,"byproduct":false},{"name":"Aluminum Casing","amount":50.0,"byproduct":false},{"name":"Heavy Modular Frame","amount":1.0,"byproduct":false}],"output":[{"name":"Fused Modular Frame","amount":1.0,"byproduct":false}],"rate":1.5,"building":"Blender"}
