@@ -1,16 +1,13 @@
-# factory_optimizer
+# Factory Optimizer
 
-A new Flutter project.
+An aide in all games dealing with production lines, factories, and optimizations
 
-## Getting Started
+## About
 
-This project is a starting point for a Flutter application.
+This project was created alongside many recipes from the game "_Satisfactory_" all item and building assets are derived from that game or any other games that will be added in the future.
 
-A few resources to get you started if this is your first Flutter project:
+This aide is setup specifically for Satisfactory at the moment, however, it was intended to be used in more games than that such as _Factorio_, _Dyson Sphere Program_, or even modded _Minecraft_.
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+## WIP
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+This is a work in progress, and as such there may be bugs that you encounter. This is to be expected in the development process. Not all features have been added, but enough to consider this an MVP. For example, you cannot yet modify existing recipes without directly modifying the recipe's JSON file yourself, but this feature is planned for the future.
