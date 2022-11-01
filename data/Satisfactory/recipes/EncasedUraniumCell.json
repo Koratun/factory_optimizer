@@ -1,0 +1,33 @@
+{
+    "input": [
+        {
+            "name": "Sulfuric Acid",
+            "amount": 8.0,
+            "byproduct": false
+        },
+        {
+            "name": "Concrete",
+            "amount": 3.0,
+            "byproduct": false
+        },
+        {
+            "name": "Uranium",
+            "amount": 10.0,
+            "byproduct": false
+        }
+    ],
+    "output": [
+        {
+            "name": "Encased Uranium Cell",
+            "amount": 5.0,
+            "byproduct": false
+        },
+        {
+            "name": "Sulfuric Acid",
+            "amount": 2.0,
+            "byproduct": true
+        }
+    ],
+    "rate": 25.0,
+    "building": "Blender"
+}

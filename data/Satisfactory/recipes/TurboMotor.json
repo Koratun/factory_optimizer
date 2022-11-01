@@ -1,0 +1,1 @@
+{"input":[{"name":"Rubber","amount":24.0,"byproduct":false},{"name":"Motor","amount":4.0,"byproduct":false},{"name":"Radio Control Unit","amount":2.0,"byproduct":false},{"name":"Cooling System","amount":4.0,"byproduct":false}],"output":[{"name":"Turbo Motor","amount":1.0,"byproduct":false}],"rate":1.875,"building":"Manufacturer"}

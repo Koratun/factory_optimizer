@@ -1,0 +1,1 @@
+{"input":[{"name":"Electromagnetic Control Rod","amount":5.0,"byproduct":false},{"name":"Encased Industrial Beam","amount":3.0,"byproduct":false},{"name":"Encased Uranium Cell","amount":50.0,"byproduct":false}],"output":[{"name":"Uranium Fuel Rod","amount":1.0,"byproduct":false}],"rate":0.4,"building":"Manufacturer"}

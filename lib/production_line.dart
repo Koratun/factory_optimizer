@@ -763,29 +763,30 @@ class _FactoryOverviewState extends State<FactoryOverview> {
           Positioned.fill(
             top: 200,
             child: InteractiveViewer(
-                maxScale: 1.0,
-                minScale: 0.1,
-                clipBehavior: Clip.none,
-                constrained: false,
-                boundaryMargin: const EdgeInsets.all(16),
-                child: ConstrainedBox(
-                  constraints: BoxConstraints(
-                    minWidth: MediaQuery.of(context).size.width,
-                    minHeight: MediaQuery.of(context).size.height - 200,
-                  ),
-                  child: Center(
-                    child: _FactoryDelegate(
-                      context,
-                      game,
-                      graph,
-                      strategy,
-                      _markDirty,
-                      graph.rootNodes.firstWhere((n) => n.selected.value),
-                      subDelegates: _getSubdelegates(
-                          graph.rootNodes.firstWhere((n) => n.selected.value)),
-                    ).boxy,
-                  ),
-                )),
+              maxScale: 1.0,
+              minScale: 0.1,
+              clipBehavior: Clip.none,
+              constrained: false,
+              boundaryMargin: const EdgeInsets.all(16),
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  minWidth: MediaQuery.of(context).size.width,
+                  minHeight: MediaQuery.of(context).size.height - 200,
+                ),
+                child: Center(
+                  child: _FactoryDelegate(
+                    context,
+                    game,
+                    graph,
+                    strategy,
+                    _markDirty,
+                    graph.rootNodes.firstWhere((n) => n.selected.value),
+                    subDelegates: _getSubdelegates(
+                        graph.rootNodes.firstWhere((n) => n.selected.value)),
+                  ).boxy,
+                ),
+              ),
+            ),
           ),
           Positioned.directional(
             textDirection: TextDirection.ltr,

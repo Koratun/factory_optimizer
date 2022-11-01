@@ -1,0 +1,23 @@
+{
+    "input": [
+        {
+            "name": "Water",
+            "amount": 1500.0,
+            "byproduct": false
+        },
+        {
+            "name": "Uranium Fuel Rod",
+            "amount": 1.0,
+            "byproduct": false
+        }
+    ],
+    "output": [
+        {
+            "name": "Uranium Waste",
+            "amount": 50.0,
+            "byproduct": false
+        }
+    ],
+    "rate": 10.0,
+    "building": "Nuclear Power Plant"
+}
