@@ -1,0 +1,1 @@
+{"input":[{"name":"Plasma Exciter","amount":6.0,"byproduct":false},{"name":"Circuit Board","amount":6.0,"byproduct":false},{"name":"Stone Brick","amount":10.0,"byproduct":false},{"name":"Steel","amount":10.0,"byproduct":false}],"output":[{"name":"Oil Refinery","amount":1.0,"byproduct":false}],"rate":10.0,"building":"Assembler Mk II"}

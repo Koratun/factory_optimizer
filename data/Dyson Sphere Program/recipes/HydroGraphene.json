@@ -1,0 +1,1 @@
+{"input":[{"name":"Fire Ice","amount":2.0,"byproduct":false}],"output":[{"name":"Hydrogen","amount":1.0,"byproduct":false},{"name":"Graphene","amount":2.0,"byproduct":false}],"rate":30.0,"building":"Chemical Plant"}

@@ -1,0 +1,1 @@
+{"input":[{"name":"Glass","amount":3.0,"byproduct":false}],"output":[{"name":"Prism","amount":2.0,"byproduct":false}],"rate":60.0,"building":"Assembler Mk II"}

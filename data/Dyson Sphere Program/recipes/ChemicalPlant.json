@@ -1,0 +1,1 @@
+{"input":[{"name":"Circuit Board","amount":2.0,"byproduct":false},{"name":"Glass","amount":8.0,"byproduct":false},{"name":"Stone Brick","amount":8.0,"byproduct":false},{"name":"Steel","amount":8.0,"byproduct":false}],"output":[{"name":"Chemical Plant","amount":1.0,"byproduct":false}],"rate":12.0,"building":"Assembler Mk II"}

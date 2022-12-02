@@ -1,0 +1,1 @@
+{"input":[{"name":"Circuit Board","amount":1.0,"byproduct":false},{"name":"Magnetic Coil","amount":1.0,"byproduct":false}],"output":[{"name":"Electromagnetic Matrix","amount":1.0,"byproduct":false}],"rate":20.0,"building":"Matrix Lab"}

@@ -1,0 +1,1 @@
+{"input":[{"name":"Water","amount":1.0,"byproduct":false},{"name":"Refined Oil","amount":1.0,"byproduct":false},{"name":"Plastic","amount":2.0,"byproduct":false}],"output":[{"name":"Organic Crystal","amount":1.0,"byproduct":false}],"rate":10.0,"building":"Chemical Plant"}

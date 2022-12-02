@@ -1,0 +1,1 @@
+{"input":[{"name":"Hydrogen","amount":2.0,"byproduct":false},{"name":"Energetic Graphite","amount":2.0,"byproduct":false}],"output":[{"name":"Energy Matrix","amount":1.0,"byproduct":false}],"rate":10.0,"building":"Matrix Lab"}

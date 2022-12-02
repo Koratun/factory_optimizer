@@ -1,0 +1,23 @@
+{
+    "input": [
+        {
+            "name": "Copper Ingot",
+            "amount": 1.0,
+            "byproduct": false
+        },
+        {
+            "name": "Magnet",
+            "amount": 2.0,
+            "byproduct": false
+        }
+    ],
+    "output": [
+        {
+            "name": "Magnetic Coil",
+            "amount": 2.0,
+            "byproduct": false
+        }
+    ],
+    "rate": 120.0,
+    "building": "Assembler Mk II"
+}
