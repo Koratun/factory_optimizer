@@ -198,7 +198,13 @@ class _RecipeEdge {
   _RecipeEdge(this.incoming, this.outgoing, this.upstreamEdge, this.graph) {
     for (var o in incoming.recipe.output) {
       for (var i in outgoing.recipe.input) {
-        if (o.name == i.name) {
+        if (o.name == i.name &&
+            graph.edges
+                .where((e) =>
+                    e.outgoing == outgoing &&
+                    e.connectingName == o.name &&
+                    e.incoming.recipe == incoming.recipe)
+                .isEmpty) {
           connectingName = o.name;
           double oOpRate = incoming.recipe.operationalRate ?? 1;
           double iOpRate = outgoing.recipe.operationalRate ?? 1;
@@ -208,6 +214,8 @@ class _RecipeEdge {
           } else {
             recipeMultiplier *= graph.rootMultiplier;
           }
+          graph.edges.add(this);
+          return;
         }
       }
     }
@@ -362,7 +370,6 @@ class _ProductionGraph {
         var newEdges = newNodes
             .map((n) => _RecipeEdge(n, node, upstreamEdge, this))
             .toList();
-        edges.addAll(newEdges);
         for (var e in newEdges) {
           processRecipe(e.incoming, upstreamEdge: e);
         }
@@ -926,7 +933,7 @@ class _FactoryOverviewState extends State<FactoryOverview> {
                       textWidthBasis: TextWidthBasis.longestLine,
                       style: Theme.of(context)
                           .textTheme
-                          .subtitle2!
+                          .titleSmall!
                           .copyWith(color: Colors.white),
                     ),
                     Padding(
@@ -1005,7 +1012,7 @@ class _FactoryOverviewState extends State<FactoryOverview> {
                         textWidthBasis: TextWidthBasis.longestLine,
                         style: Theme.of(context)
                             .textTheme
-                            .subtitle2!
+                            .titleSmall!
                             .copyWith(color: Colors.white),
                       ),
                     ),
@@ -1067,21 +1074,22 @@ class _FactoryOverviewState extends State<FactoryOverview> {
       width: 56,
       height: 56,
       child: Stack(
-        alignment: Alignment.bottomRight,
+        alignment: Alignment.center,
         children: [
-          Padding(
-            padding: const EdgeInsets.all(4),
-            child: Tooltip(
-              message: name,
-              verticalOffset: 32,
-              child: Image.file(game.itemAssets[name]!),
+          Tooltip(
+            message: name,
+            verticalOffset: 32,
+            child: Image.file(game.itemAssets[name]!),
+          ),
+          Positioned(
+            bottom: 0,
+            right: 0,
+            child: DeltaText(
+              amount,
+              "",
+              Theme.of(context).textTheme.labelSmall!,
             ),
           ),
-          DeltaText(
-            amount,
-            "",
-            Theme.of(context).textTheme.labelSmall!,
-          )
         ],
       ),
     );
@@ -1127,6 +1135,7 @@ class _FactoryDelegate extends BoxyDelegate {
             mainAxisAlignment: rawResources.length <= 1
                 ? MainAxisAlignment.center
                 : MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               for (var i in rawResources)
                 itemAmount(
@@ -1357,21 +1366,21 @@ class _FactoryDelegate extends BoxyDelegate {
     bool raw = false,
   }) {
     return SizedBox(
-      width: raw ? 146 : 112,
+      width: raw ? 112 + 34 : 112,
       height: 112,
       child: Stack(
         alignment: Alignment.topLeft,
         children: [
           if (raw)
             Positioned(
-              width: 47,
+              width: 48,
               height: 4,
               top: 54,
               right: 0,
               child: Container(color: Colors.lightBlueAccent),
             ),
           Padding(
-            padding: const EdgeInsets.all(8),
+            padding: const EdgeInsets.all(16),
             child: Tooltip(
               message: i.name,
               verticalOffset: -70,
@@ -1382,7 +1391,11 @@ class _FactoryDelegate extends BoxyDelegate {
                     : game.recipes.containsKey(i.name)
                         ? Colors.greenAccent.withOpacity(0.4)
                         : Colors.brown.shade900.withOpacity(0.7),
-                child: Image.file(game.itemAssets[i.name]!),
+                child: Image.file(
+                  game.itemAssets[i.name]!,
+                  width: 72,
+                  height: 72,
+                ),
               ),
             ),
           ),
@@ -1604,15 +1617,17 @@ class _FactoryDelegate extends BoxyDelegate {
         ),
         Positioned(
           height: 200,
-          width: 128,
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          width: 128 + 72,
+          child: Stack(
+            alignment: Alignment.center,
             children: [
-              Text(
-                node.recipe.building!,
-                style: Theme.of(context).textTheme.labelLarge,
-                textAlign: TextAlign.center,
-                textWidthBasis: TextWidthBasis.longestLine,
+              Positioned(
+                top: 0,
+                child: Text(
+                  node.recipe.building!,
+                  style: Theme.of(context).textTheme.labelLarge,
+                  textAlign: TextAlign.center,
+                ),
               ),
               SizedBox(
                 width: 128,
@@ -1625,16 +1640,19 @@ class _FactoryDelegate extends BoxyDelegate {
                         ? Colors.lightBlueAccent.withOpacity(0.3)
                         : Colors.redAccent.shade400.withOpacity(0.3),
                     child: Image.file(
-                        game.buildingAssets[node.recipe.building!]!.file),
+                      game.buildingAssets[node.recipe.building!]!.file,
+                    ),
                   ),
                 ),
               ),
-              Text(
-                "${game.buildingAssets[node.recipe.building!]!.cost.pretty} MW / building / sec\n"
-                "${(game.buildingAssets[node.recipe.building!]!.cost * (upEdge?.recipeMultiplier.ceil() ?? graph.rootMultiplier.ceil())).pretty} MW / sec",
-                style: Theme.of(context).textTheme.labelMedium,
-                textAlign: TextAlign.center,
-                textWidthBasis: TextWidthBasis.longestLine,
+              Positioned(
+                bottom: 0,
+                child: Text(
+                  "${game.buildingAssets[node.recipe.building!]!.cost.pretty} MW / building / sec\n"
+                  "${(game.buildingAssets[node.recipe.building!]!.cost * (upEdge?.recipeMultiplier.ceil() ?? graph.rootMultiplier.ceil())).pretty} MW / sec",
+                  style: Theme.of(context).textTheme.labelMedium,
+                  textAlign: TextAlign.center,
+                ),
               ),
             ],
           ),

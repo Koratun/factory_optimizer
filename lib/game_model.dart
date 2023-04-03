@@ -210,7 +210,7 @@ class GameModel extends ChangeNotifier {
                             },
                       hoverColor: Colors.grey.shade900,
                       leading: Image.file(b.file),
-                      visualDensity: const VisualDensity(vertical: 4),
+                      visualDensity: const VisualDensity(vertical: 2),
                       title: Text(
                         b.name,
                         textWidthBasis: TextWidthBasis.longestLine,
@@ -329,6 +329,18 @@ class GameModel extends ChangeNotifier {
 
   final Map<String, TextEditingController> recipeFields = {};
 
+  String _recipeFieldName(String assetName, bool item, bool input) {
+    if (item) {
+      if (input) {
+        return "$assetName-input";
+      } else {
+        return "$assetName-output";
+      }
+    } else {
+      return "$assetName-building";
+    }
+  }
+
   Widget _floatingButtons(
     void Function(void Function()) setState,
     Widget child,
@@ -341,6 +353,7 @@ class GameModel extends ChangeNotifier {
       return child;
     }
     return Stack(
+      alignment: Alignment.center,
       children: [
         child,
         Positioned(
@@ -351,7 +364,7 @@ class GameModel extends ChangeNotifier {
           child: IconButton(
             padding: EdgeInsets.zero,
             onPressed: () {
-              recipeFields.remove(assetName);
+              recipeFields.remove(_recipeFieldName(assetName, item, input));
               setState(() {
                 if (item) {
                   if (input) {
@@ -384,8 +397,9 @@ class GameModel extends ChangeNotifier {
     required bool input,
     required String outputName,
   }) {
-    if (!recipeFields.containsKey(assetName)) {
-      recipeFields[assetName] = TextEditingController(text: "0");
+    var fieldName = _recipeFieldName(assetName, item, input);
+    if (!recipeFields.containsKey(fieldName)) {
+      recipeFields[fieldName] = TextEditingController(text: "0");
     }
     return Padding(
       padding: const EdgeInsets.only(left: 4, right: 4, top: 10),
@@ -415,7 +429,7 @@ class GameModel extends ChangeNotifier {
                   height: 20,
                   color: Colors.grey.shade700,
                   child: TextField(
-                    controller: recipeFields[assetName],
+                    controller: recipeFields[fieldName],
                     textAlign: TextAlign.center,
                     style: Theme.of(context).textTheme.labelMedium,
                     inputFormatters: [
@@ -461,7 +475,7 @@ class GameModel extends ChangeNotifier {
                   height: 20,
                   color: Colors.grey.shade700,
                   child: TextField(
-                    controller: recipeFields[assetName],
+                    controller: recipeFields[fieldName],
                     textAlign: TextAlign.center,
                     style: Theme.of(context).textTheme.labelMedium,
                     inputFormatters: [
@@ -511,7 +525,7 @@ class GameModel extends ChangeNotifier {
                     decoration: InputDecoration(
                       filled: true,
                       fillColor: Colors.grey.shade400,
-                      hintText: "Filename for recipe without the extension",
+                      hintText: "Key name for recipe",
                     ),
                   ),
                   Row(
@@ -614,7 +628,8 @@ class GameModel extends ChangeNotifier {
                         failed = true;
                       }
                       if (newRecipe!.building != null &&
-                          (double.tryParse(recipeFields[newRecipe!.building!]!
+                          (double.tryParse(recipeFields[
+                                          "${newRecipe!.building!}-building"]!
                                       .text) ??
                                   0) <=
                               0) {
@@ -622,7 +637,8 @@ class GameModel extends ChangeNotifier {
                         failed = true;
                       }
                       for (var inp in newRecipe!.input) {
-                        if ((double.tryParse(recipeFields[inp.name]!.text) ??
+                        if ((double.tryParse(
+                                    recipeFields["${inp.name}-input"]!.text) ??
                                 0) <=
                             0) {
                           _errorAlert(
@@ -631,7 +647,8 @@ class GameModel extends ChangeNotifier {
                         }
                       }
                       for (var o in newRecipe!.output) {
-                        if ((double.tryParse(recipeFields[o.name]!.text) ??
+                        if ((double.tryParse(
+                                    recipeFields["${o.name}-output"]!.text) ??
                                 0) <=
                             0) {
                           _errorAlert(
@@ -641,16 +658,17 @@ class GameModel extends ChangeNotifier {
                       }
                       if (!failed) {
                         for (var inp in newRecipe!.input) {
-                          inp.amount =
-                              double.tryParse(recipeFields[inp.name]!.text)!;
+                          inp.amount = double.tryParse(
+                              recipeFields["${inp.name}-input"]!.text)!;
                         }
                         for (var o in newRecipe!.output) {
-                          o.amount =
-                              double.tryParse(recipeFields[o.name]!.text)!;
+                          o.amount = double.tryParse(
+                              recipeFields["${o.name}-output"]!.text)!;
                         }
                         if (newRecipe!.building != null) {
                           newRecipe!.rate = double.tryParse(
-                              recipeFields[newRecipe!.building!]!.text)!;
+                              recipeFields["${newRecipe!.building!}-building"]!
+                                  .text)!;
                         }
                         var infinite = _checkForInfiniteRecursion(newRecipe!);
                         if (infinite != null) {
@@ -820,7 +838,7 @@ class GameModel extends ChangeNotifier {
                         return "Must contain a file path or URL";
                       }
                       if (value.startsWith("https")) {
-                        var t = nameController.text;
+                        var t = nameController.text.trim();
                         var f = tempFile!.copySync(
                             "assets\\items\\$t${tempFile!.path.extension}");
                         tempFile!.deleteSync();
@@ -834,7 +852,7 @@ class GameModel extends ChangeNotifier {
                         if (!tempFile!.existsSync()) {
                           return "Unable to access file";
                         }
-                        var t = nameController.text;
+                        var t = nameController.text.trim();
                         if (!File(
                                 "assets\\items\\$t${tempFile!.path.extension}")
                             .existsSync()) {
