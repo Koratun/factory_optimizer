@@ -1,0 +1,1 @@
+{"input":[{"name":"Lubricant","amount":15.0,"byproduct":false},{"name":"Engine unit","amount":1.0,"byproduct":false},{"name":"Electronic circuit","amount":2.0,"byproduct":false}],"output":[{"name":"Electric engine unit","amount":1.0,"byproduct":false}],"rate":6.0,"building":"Assembler machine 2"}

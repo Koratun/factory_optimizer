@@ -1,0 +1,1 @@
+{"input":[{"name":"Flying robot frame","amount":1.0,"byproduct":false},{"name":"Advanced circuit","amount":2.0,"byproduct":false}],"output":[{"name":"Logistic robot","amount":1.0,"byproduct":false}],"rate":120.0,"building":"Assembling machine 1"}

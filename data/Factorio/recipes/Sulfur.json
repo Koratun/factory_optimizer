@@ -1,0 +1,1 @@
+{"input":[{"name":"Water","amount":30.0,"byproduct":false},{"name":"Petroleum gas","amount":30.0,"byproduct":false}],"output":[{"name":"Sulfur","amount":2.0,"byproduct":false}],"rate":120.0,"building":"Chemical plant"}

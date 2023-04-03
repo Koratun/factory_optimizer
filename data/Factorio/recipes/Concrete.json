@@ -1,0 +1,1 @@
+{"input":[{"name":"Water","amount":100.0,"byproduct":false},{"name":"Stone brick","amount":5.0,"byproduct":false},{"name":"Iron ore","amount":1.0,"byproduct":false}],"output":[{"name":"Concrete","amount":10.0,"byproduct":false}],"rate":60.0,"building":"Assembler machine 2"}

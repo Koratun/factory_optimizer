@@ -1,0 +1,1 @@
+{"input":[{"name":"Sulfur","amount":1.0,"byproduct":false},{"name":"Engine unit","amount":2.0,"byproduct":false},{"name":"Advanced circuit","amount":3.0,"byproduct":false}],"output":[{"name":"Chemical science pack","amount":2.0,"byproduct":false}],"rate":5.0,"building":"Assembling machine 1"}

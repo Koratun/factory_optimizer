@@ -1,0 +1,1 @@
+{"input":[{"name":"Sulfuric acid","amount":20.0,"byproduct":false},{"name":"Iron plate","amount":1.0,"byproduct":false},{"name":"Copper plate","amount":1.0,"byproduct":false}],"output":[{"name":"Battery","amount":1.0,"byproduct":false}],"rate":15.0,"building":"Chemical plant"}

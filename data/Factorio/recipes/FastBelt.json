@@ -1,0 +1,1 @@
+{"input":[{"name":"Transport Belt","amount":1.0,"byproduct":false},{"name":"Iron gear wheel","amount":5.0,"byproduct":false}],"output":[{"name":"Fast transport belt","amount":1.0,"byproduct":false}],"rate":120.0,"building":"Assembling machine 1"}

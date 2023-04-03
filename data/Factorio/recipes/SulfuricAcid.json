@@ -1,0 +1,1 @@
+{"input":[{"name":"Water","amount":100.0,"byproduct":false},{"name":"Sulfur","amount":5.0,"byproduct":false},{"name":"Iron plate","amount":1.0,"byproduct":false}],"output":[{"name":"Sulfuric acid","amount":50.0,"byproduct":false}],"rate":3000.0,"building":"Chemical plant"}

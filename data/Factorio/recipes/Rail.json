@@ -1,0 +1,1 @@
+{"input":[{"name":"Stone","amount":1.0,"byproduct":false},{"name":"Steel plate","amount":1.0,"byproduct":false},{"name":"Iron stick","amount":1.0,"byproduct":false}],"output":[{"name":"Rail","amount":2.0,"byproduct":false}],"rate":240.0,"building":"Assembling machine 1"}

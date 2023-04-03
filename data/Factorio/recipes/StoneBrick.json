@@ -1,0 +1,1 @@
+{"input":[{"name":"Stone","amount":2.0,"byproduct":false}],"output":[{"name":"Stone brick","amount":1.0,"byproduct":false}],"rate":18.75,"building":"Stone furnace"}

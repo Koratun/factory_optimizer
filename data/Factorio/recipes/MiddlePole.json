@@ -1,0 +1,1 @@
+{"input":[{"name":"Steel plate","amount":2.0,"byproduct":false},{"name":"Iron stick","amount":4.0,"byproduct":false},{"name":"Copper plate","amount":2.0,"byproduct":false}],"output":[{"name":"Medium electric pole","amount":1.0,"byproduct":false}],"rate":120.0,"building":"Assembling machine 1"}

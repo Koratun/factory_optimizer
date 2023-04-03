@@ -1,0 +1,1 @@
+{"input":[{"name":"Steel plate","amount":1.0,"byproduct":false},{"name":"Firearm magazine","amount":1.0,"byproduct":false},{"name":"Copper plate","amount":5.0,"byproduct":false}],"output":[{"name":"Piercing rounds","amount":1.0,"byproduct":false}],"rate":20.0,"building":"Assembling machine 1"}

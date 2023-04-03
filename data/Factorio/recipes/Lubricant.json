@@ -1,0 +1,1 @@
+{"input":[{"name":"Heavy oil","amount":10.0,"byproduct":false}],"output":[{"name":"Lubricant","amount":10.0,"byproduct":false}],"rate":600.0,"building":"Chemical plant"}

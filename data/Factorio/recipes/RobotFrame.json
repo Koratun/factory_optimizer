@@ -1,0 +1,1 @@
+{"input":[{"name":"Steel plate","amount":1.0,"byproduct":false},{"name":"Electronic circuit","amount":3.0,"byproduct":false},{"name":"Electric engine unit","amount":1.0,"byproduct":false},{"name":"Battery","amount":2.0,"byproduct":false}],"output":[{"name":"Flying robot frame","amount":1.0,"byproduct":false}],"rate":3.0,"building":"Assembling machine 1"}

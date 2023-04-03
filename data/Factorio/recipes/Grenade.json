@@ -1,0 +1,1 @@
+{"input":[{"name":"Iron plate","amount":5.0,"byproduct":false},{"name":"Coal","amount":10.0,"byproduct":false}],"output":[{"name":"Grenade","amount":1.0,"byproduct":false}],"rate":7.5,"building":"Assembling machine 1"}

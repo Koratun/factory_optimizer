@@ -1,0 +1,1 @@
+{"input":[{"name":"Transport Belt","amount":4.0,"byproduct":false},{"name":"Iron plate","amount":5.0,"byproduct":false},{"name":"Electronic circuit","amount":5.0,"byproduct":false}],"output":[{"name":"Splitter","amount":1.0,"byproduct":false}],"rate":60.0,"building":"Assembling machine 1"}

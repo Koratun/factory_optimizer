@@ -1,0 +1,1 @@
+{"input":[{"name":"Stone brick","amount":5.0,"byproduct":false}],"output":[{"name":"Wall","amount":1.0,"byproduct":false}],"rate":120.0,"building":"Assembling machine 1"}

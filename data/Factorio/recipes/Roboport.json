@@ -1,0 +1,1 @@
+{"input":[{"name":"Steel plate","amount":45.0,"byproduct":false},{"name":"Iron gear wheel","amount":45.0,"byproduct":false},{"name":"Advanced circuit","amount":45.0,"byproduct":false}],"output":[{"name":"Roboport","amount":1.0,"byproduct":false}],"rate":12.0,"building":"Assembling machine 1"}

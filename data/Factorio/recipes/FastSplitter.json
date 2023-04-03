@@ -1,0 +1,1 @@
+{"input":[{"name":"Splitter","amount":1.0,"byproduct":false},{"name":"Iron gear wheel","amount":10.0,"byproduct":false},{"name":"Electronic circuit","amount":10.0,"byproduct":false}],"output":[{"name":"Fast splitter","amount":1.0,"byproduct":false}],"rate":30.0,"building":"Assembling machine 1"}

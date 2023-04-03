@@ -1,0 +1,1 @@
+{"input":[{"name":"Lubricant","amount":40.0,"byproduct":false},{"name":"Iron gear wheel","amount":80.0,"byproduct":false},{"name":"Fast underground belt","amount":2.0,"byproduct":false}],"output":[{"name":"Express underground belt","amount":2.0,"byproduct":false}],"rate":60.0,"building":"Assembler machine 2"}

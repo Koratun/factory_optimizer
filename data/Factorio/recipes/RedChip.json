@@ -1,0 +1,1 @@
+{"input":[{"name":"Plastic","amount":2.0,"byproduct":false},{"name":"Electronic circuit","amount":2.0,"byproduct":false},{"name":"Copper cable","amount":4.0,"byproduct":false}],"output":[{"name":"Advanced circuit","amount":1.0,"byproduct":false}],"rate":10.0,"building":"Assembling machine 1"}

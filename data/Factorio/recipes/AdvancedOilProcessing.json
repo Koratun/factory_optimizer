@@ -1,0 +1,1 @@
+{"input":[{"name":"Water","amount":50.0,"byproduct":false},{"name":"Crude oil","amount":100.0,"byproduct":false}],"output":[{"name":"Petroleum gas","amount":55.0,"byproduct":false},{"name":"Heavy oil","amount":25.0,"byproduct":false},{"name":"Light oil","amount":45.0,"byproduct":false}],"rate":660.0,"building":"Oil refinery"}

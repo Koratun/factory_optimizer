@@ -1,0 +1,1 @@
+{"input":[{"name":"Wall","amount":2.0,"byproduct":false},{"name":"Piercing rounds","amount":1.0,"byproduct":false},{"name":"Grenade","amount":1.0,"byproduct":false}],"output":[{"name":"Military science pack","amount":2.0,"byproduct":false}],"rate":12.0,"building":"Assembling machine 1"}

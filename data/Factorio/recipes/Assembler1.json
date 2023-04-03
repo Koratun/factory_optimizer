@@ -1,0 +1,28 @@
+{
+    "input": [
+        {
+            "name": "Iron plate",
+            "amount": 9.0,
+            "byproduct": false
+        },
+        {
+            "name": "Iron gear wheel",
+            "amount": 5.0,
+            "byproduct": false
+        },
+        {
+            "name": "Electronic circuit",
+            "amount": 3.0,
+            "byproduct": false
+        }
+    ],
+    "output": [
+        {
+            "name": "Assembling machine 1",
+            "amount": 1.0,
+            "byproduct": false
+        }
+    ],
+    "rate": 120.0,
+    "building": "Assembling machine 1"
+}

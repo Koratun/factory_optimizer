@@ -1,0 +1,1 @@
+{"input":[{"name":"Steel plate","amount":5.0,"byproduct":false},{"name":"Pipe","amount":5.0,"byproduct":false},{"name":"Iron gear wheel","amount":5.0,"byproduct":false},{"name":"Electronic circuit","amount":5.0,"byproduct":false}],"output":[{"name":"Chemical plant","amount":1.0,"byproduct":false}],"rate":12.0,"building":"Assembling machine 1"}

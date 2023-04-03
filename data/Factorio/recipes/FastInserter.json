@@ -1,0 +1,1 @@
+{"input":[{"name":"Iron plate","amount":2.0,"byproduct":false},{"name":"Inserter","amount":1.0,"byproduct":false},{"name":"Electronic circuit","amount":2.0,"byproduct":false}],"output":[{"name":"Fast inserter","amount":1.0,"byproduct":false}],"rate":120.0,"building":"Assembling machine 1"}
