@@ -1,0 +1,1 @@
+{"input":[{"name":"Deuterium","amount":10.0,"byproduct":false},{"name":"Iron Ingot","amount":2.0,"byproduct":false},{"name":"Particle Container","amount":2.0,"byproduct":false}],"output":[{"name":"Strange Matter","amount":1.0,"byproduct":false}],"rate":7.5,"building":"Particle Collider"}

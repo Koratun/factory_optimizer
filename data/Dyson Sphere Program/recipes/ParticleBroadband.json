@@ -1,0 +1,1 @@
+{"input":[{"name":"Plastic","amount":1.0,"byproduct":false},{"name":"Crystal Silicon","amount":2.0,"byproduct":false},{"name":"Carbon Nanotube","amount":2.0,"byproduct":false}],"output":[{"name":"Particle Broadband","amount":1.0,"byproduct":false}],"rate":7.5,"building":"Assembler Mk II"}

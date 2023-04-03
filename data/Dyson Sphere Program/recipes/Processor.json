@@ -1,0 +1,1 @@
+{"input":[{"name":"Microcrystalline Component","amount":2.0,"byproduct":false},{"name":"Circuit Board","amount":2.0,"byproduct":false}],"output":[{"name":"Processor","amount":1.0,"byproduct":false}],"rate":20.0,"building":"Assembler Mk II"}

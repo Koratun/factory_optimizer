@@ -1,0 +1,1 @@
+{"input":[{"name":"Strange Matter","amount":1.0,"byproduct":false},{"name":"Diamond","amount":4.0,"byproduct":false}],"output":[{"name":"Graviton Lens","amount":1.0,"byproduct":false}],"rate":10.0,"building":"Assembler Mk II"}

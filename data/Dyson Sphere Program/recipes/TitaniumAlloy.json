@@ -1,0 +1,1 @@
+{"input":[{"name":"Sulfuric Acid","amount":8.0,"byproduct":false},{"name":"Steel","amount":4.0,"byproduct":false},{"name":"Titanium Ingot","amount":4.0,"byproduct":false}],"output":[{"name":"Titanium Alloy","amount":4.0,"byproduct":false}],"rate":20.0,"building":"Arc Smelter"}

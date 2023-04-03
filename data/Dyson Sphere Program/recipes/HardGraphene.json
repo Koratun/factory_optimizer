@@ -1,0 +1,1 @@
+{"input":[{"name":"Sulfuric Acid","amount":1.0,"byproduct":false},{"name":"Energetic Graphite","amount":3.0,"byproduct":false}],"output":[{"name":"Graphene","amount":2.0,"byproduct":false}],"rate":40.0,"building":"Chemical Plant"}

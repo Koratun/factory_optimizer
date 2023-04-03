@@ -1,0 +1,1 @@
+{"input":[{"name":"Diamond","amount":1.0,"byproduct":false},{"name":"Proliferator Mk I","amount":2.0,"byproduct":false}],"output":[{"name":"Proliferator Mk II","amount":1.0,"byproduct":false}],"rate":60.0,"building":"Assembler Mk II"}

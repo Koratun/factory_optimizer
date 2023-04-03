@@ -1,0 +1,1 @@
+{"input":[{"name":"Graphene","amount":2.0,"byproduct":false},{"name":"Copper Ingot","amount":2.0,"byproduct":false},{"name":"Electromagnetic Turbine","amount":2.0,"byproduct":false}],"output":[{"name":"Particle Container","amount":1.0,"byproduct":false}],"rate":15.0,"building":"Assembler Mk II"}

@@ -1,0 +1,1 @@
+{"input":[{"name":"Crystal Silicon","amount":6.0,"byproduct":false},{"name":"Super-Magnetic Ring","amount":1.0,"byproduct":false},{"name":"Iron Ingot","amount":6.0,"byproduct":false}],"output":[{"name":"Accumulator","amount":1.0,"byproduct":false}],"rate":12.0,"building":"Assembler Mk II"}

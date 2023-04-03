@@ -1,0 +1,1 @@
+{"input":[{"name":"Hydrogen","amount":12.0,"byproduct":false},{"name":"Graphene","amount":2.0,"byproduct":false},{"name":"Titanium Crystal","amount":1.0,"byproduct":false}],"output":[{"name":"Casimir Crystal","amount":1.0,"byproduct":false}],"rate":15.0,"building":"Assembler Mk II"}

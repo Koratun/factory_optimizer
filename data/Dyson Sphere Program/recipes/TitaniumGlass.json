@@ -1,0 +1,1 @@
+{"input":[{"name":"Water","amount":2.0,"byproduct":false},{"name":"Titanium Ingot","amount":2.0,"byproduct":false},{"name":"Glass","amount":2.0,"byproduct":false}],"output":[{"name":"Titanium Glass","amount":2.0,"byproduct":false}],"rate":24.0,"building":"Assembler Mk II"}

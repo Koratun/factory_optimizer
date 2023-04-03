@@ -1,0 +1,1 @@
+{"input":[{"name":"Hydrogen","amount":10.0,"byproduct":false}],"output":[{"name":"Deuterium","amount":5.0,"byproduct":false}],"rate":120.0,"building":"Particle Collider"}

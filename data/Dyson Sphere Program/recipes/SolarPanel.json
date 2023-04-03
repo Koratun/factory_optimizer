@@ -1,0 +1,1 @@
+{"input":[{"name":"Circuit Board","amount":5.0,"byproduct":false},{"name":"High-Purity Silicon","amount":10.0,"byproduct":false},{"name":"Copper Ingot","amount":10.0,"byproduct":false}],"output":[{"name":"Solar Panel","amount":1.0,"byproduct":false}],"rate":10.0,"building":"Assembler Mk II"}

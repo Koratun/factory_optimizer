@@ -1,0 +1,1 @@
+{"input":[{"name":"Energetic Graphite","amount":1.0,"byproduct":false},{"name":"Magnet","amount":3.0,"byproduct":false},{"name":"Electromagnetic Turbine","amount":2.0,"byproduct":false}],"output":[{"name":"Super-Magnetic Ring","amount":1.0,"byproduct":false}],"rate":20.0,"building":"Assembler Mk II"}

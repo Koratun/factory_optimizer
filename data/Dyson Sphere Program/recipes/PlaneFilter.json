@@ -1,0 +1,1 @@
+{"input":[{"name":"Titanium Glass","amount":2.0,"byproduct":false},{"name":"Casimir Crystal","amount":1.0,"byproduct":false}],"output":[{"name":"Plane Filter","amount":1.0,"byproduct":false}],"rate":5.0,"building":"Assembler Mk II"}
